@@ -1,119 +1,184 @@
-# Cal Connect - Calendar Connection App
+# Cal Connect
 
-A calendar connection platform that enables two users to connect their calendars and automatically find optimal meeting times based on their mutual availability. Built for the SF AI Vibe Coding Hackathon.
+**Pick a time in seconds.** Effortless two-person scheduling with AI-powered suggestions.
 
-## Features
+A mobile-focused standalone web app for seamless calendar scheduling between two people. Built according to the comprehensive spec for intuitive user experience and powerful AI suggestions.
 
-- **User Authentication**: Firebase-based authentication system
-- **User Connections**: Search and connect with other users
-- **Calendar Integration**: Connect with Cal.com for calendar access
-- **Meeting Suggestions**: AI-powered time slot recommendations
-- **Meeting Scheduling**: Create and manage meetings
-- **Profile Management**: User settings and preferences
+## ✨ Features
 
-## Tech Stack
+### Core Functionality
+- **🔐 Google OAuth Authentication** - Sign in with profile/email only
+- **📅 Cal.com Calendar Integration** - Connect Google, Outlook, iCloud calendars
+- **👤 Profile Sharing** - Share your `@username` link for easy scheduling
+- **🤖 AI Suggestions** - 5 smart chips: First 30m, First 1h, Morning coffee, Lunch, Dinner
+- **💬 Custom Time Finder** - Natural language chat for specific scheduling needs
+- **🔗 Calendar Deep-Links** - Direct integration with Google Calendar, Outlook, iCal
+- **📱 Mobile-First Design** - Optimized for mobile with responsive web support
 
-- **Frontend**: Next.js 15, React 19, TypeScript, Tailwind CSS
-- **Backend**: Next.js API Routes
+### Smart Features
+- **📍 Location Detection** - Automatic city/region detection for venue suggestions
+- **⏰ Schedulable Hours** - Separate Work/Personal calendar management
+- **🏢 Category-Based Defaults** - Work (Mon-Fri 9-5) vs Personal schedules
+- **🌍 Timezone Handling** - Compute meetings in initiator's timezone
+- **⚡ Sub-1s Performance** - Availability cache warming for instant transitions
+
+## 🛠 Tech Stack
+
+- **Frontend**: Next.js 15 + React 19 + TypeScript + TailwindCSS v4
+- **Backend**: Next.js API routes
 - **Database**: Firebase Firestore
-- **Authentication**: Firebase Auth
-- **Calendar Integration**: Cal.com API
-- **Caching**: Redis (planned)
+- **Auth**: Google OAuth (Firebase Auth)
+- **Calendar**: Cal.com Unified API
+- **Styling**: Mobile-first responsive design
 
-## Getting Started
+## 🚀 Quick Start
 
 ### Prerequisites
-
-- Node.js 18+ 
-- npm or yarn
+- Node.js 18+
 - Firebase project
-- Cal.com account (for calendar integration)
+- Cal.com account (optional for full functionality)
 
-### Installation
+### Setup
 
-1. Clone the repository:
+1. **Clone and install**
 ```bash
 git clone https://github.com/b0mung51/SF-AI-Vibe-Coding-Hackathon.git
 cd SF-AI-Vibe-Coding-Hackathon
-```
-
-2. Install dependencies:
-```bash
 npm install
 ```
 
-3. Set up environment variables:
+2. **Environment Setup**
 ```bash
-cp .env.local.example .env.local
+cp .env.example .env.local
 ```
 
-4. Configure your environment variables in `.env.local`:
+Configure your `.env.local`:
 ```env
+# Google OAuth Configuration
+AUTH_GOOGLE_ID=your_google_oauth_client_id
+AUTH_GOOGLE_SECRET=your_google_oauth_client_secret
+
 # Firebase Configuration
-NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key_here
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project_id.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_API_KEY=your_firebase_api_key
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
 NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project_id.appspot.com
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
 NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
 NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
 
-# Cal.com API Configuration
-CALCOM_API_URL=https://api.cal.com/v1
-CALCOM_API_KEY=your_calcom_api_key
+# Cal.com Configuration (Optional)
+CALCOM_CLIENT_ID=your_calcom_client_id
+CALCOM_CLIENT_SECRET=your_calcom_client_secret
 ```
 
-5. Run the development server:
+3. **Run Development Server**
 ```bash
 npm run dev
 ```
 
-6. Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000)
 
-## Project Structure
+## 📱 User Flow
 
+### S-00: Landing Page
+- Clean "Cal Connect" branding
+- Single "Sign in with Google" button
+- Auto-redirect if already authenticated
+
+### S-01/02: Authentication & Onboarding
+- Google OAuth (profile/email only)
+- Auto-generated @username from email
+- Cal.com calendar connection walkthrough
+
+### S-03: Home Dashboard
+- Profile card with editable @username
+- Location display (auto-detected or manual)
+- "Copy link" button for sharing
+- Quick access to calendar management
+
+### S-04: Public Profile
+- View other users via `/@username` links
+- Profile display with location context
+- "Schedule" button with availability warm-up
+
+### S-05: AI Suggestions
+- 5 suggestion chips with instant scheduling
+- Direct calendar app deep-links
+- "Find custom time" option
+
+### S-05a: Custom Time Chat
+- Natural language scheduling interface
+- Constraint parsing (time windows, avoid days, etc.)
+- Multiple slot suggestions with one-click scheduling
+
+### S-06: Calendar Management
+- Multiple calendar support
+- Work/Personal categorization
+- Schedulable hours configuration (15-min granularity)
+- Default calendar per category
+
+## 🔧 Core Architecture
+
+### API Endpoints
 ```
-app/
-├── api/                    # API routes
-│   ├── auth/              # Authentication endpoints
-│   ├── connections/       # User connection management
-│   ├── calendar/          # Calendar integration
-│   └── meetings/          # Meeting management
-├── components/            # Reusable UI components
-├── lib/                   # Utility libraries
-├── types/                 # TypeScript type definitions
-├── connect/               # Connect page
-├── calendar/              # Calendar page
-├── meetings/              # Meetings page
-├── profile/               # Profile page
-└── page.tsx              # Home page
+/api/availability/mutual        # Calculate mutual free time
+/api/availability/suggestions   # AI-powered slot recommendations
+/api/availability/freeform     # Natural language time finder
 ```
 
-## API Endpoints
+### Data Models
+- **User**: Profile, username, location, preferences
+- **Calendar**: Provider, category, schedulable hours
+- **Connection**: User relationships
+- **Meeting**: Event details and status
 
-### Authentication
-- `POST /api/auth/verify-token` - Verify Firebase ID token
+### Key Features
+- **Intent-Based Suggestions**: Each chip has duration, buffers, time windows
+- **Travel Buffer Logic**: ±30m for Coffee/Lunch/Dinner, none for virtual
+- **Location Intelligence**: Venue suggestions based on meeting type and user locations
+- **Performance Optimized**: 15-minute availability caching, <1s transitions
 
-### Connections
-- `POST /api/connections/request` - Send connection request
+## 🎯 Cal.com Integration
 
-### Calendar
-- `POST /api/calendar/connect-calcom` - Connect Cal.com account
+The app uses Cal.com's Unified Calendar API for:
+- OAuth calendar connections
+- Free/busy time retrieval
+- Multi-provider support (Google, Outlook, iCloud, 100+ more)
+- Secure calendar access without exposing event details
 
-### Meetings
-- `GET /api/meetings/suggestions/[connectionId]` - Get meeting suggestions
+## 📋 Meeting Creation Flow
 
-## Contributing
+1. **Suggestion Selection** - User picks from AI chips or custom finder
+2. **Slot Calculation** - Backend finds mutual availability
+3. **Deep-Link Generation** - Create provider-specific compose URLs
+4. **Calendar Launch** - Open native Google Calendar/Outlook/iCal
+5. **Auto-Population** - Pre-filled event details, attendees, location
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+## 🔒 Privacy & Security
 
-## License
+- **No Event Details**: Only free/busy times accessed
+- **Email-Only OAuth**: Minimal Google permissions
+- **No Calendar Writes**: Users create events in their own apps
+- **Location Optional**: User controls location sharing
+- **HTTPS Only**: All communications encrypted
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+## 🚀 Production Considerations
 
-## Hackathon Information
+For production deployment:
 
-This project was built for the SF AI Vibe Coding Hackathon. The app demonstrates modern web development practices with Next.js, Firebase, and calendar integration capabilities.
+1. **Firebase Setup**: Configure Firebase project with Google OAuth
+2. **Cal.com Account**: Register for API access
+3. **Environment Variables**: Secure credential management
+4. **Domain Configuration**: OAuth redirect URLs
+5. **Analytics**: Optional usage tracking
+6. **Monitoring**: Error tracking and performance metrics
+
+## 📄 License
+
+MIT License - see [LICENSE](LICENSE) file for details.
+
+---
+
+**Built for SF AI Vibe Coding Hackathon** - Demonstrating modern React patterns, AI integration, and seamless user experience in calendar scheduling.
+
+![Cal Connect](https://github.com/b0mung51/SF-AI-Vibe-Coding-Hackathon/raw/main/screenshot.png)

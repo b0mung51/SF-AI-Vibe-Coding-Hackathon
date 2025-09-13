@@ -2,55 +2,107 @@ export interface User {
   id: string;
   email: string;
   displayName: string;
+  username: string;
+  photoURL?: string;
+  location?: {
+    city: string;
+    region: string;
+    coordinates?: {
+      lat: number;
+      lng: number;
+    };
+  };
+  defaultCalendars?: {
+    work?: string;
+    personal?: string;
+  };
   timezone: string;
   createdAt: Date;
   updatedAt: Date;
 }
 
-export interface Connection {
-  id: string;
-  requesterId: string;
-  targetId: string;
-  status: 'pending' | 'accepted' | 'declined';
-  message?: string;
-  createdAt: Date;
-  acceptedAt?: Date;
-}
-
-export interface CalendarIntegration {
+export interface Calendar {
   id: string;
   userId: string;
-  calcomApiKey: string;
-  calcomUserId: string;
-  isActive: boolean;
-  lastSync: Date;
+  provider: 'google' | 'outlook' | 'icloud' | 'other';
+  email: string;
+  category: 'work' | 'personal';
+  isDefault: boolean;
+  schedulableHours: SchedulableHours;
+  calcomIntegrationId?: string;
   createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SchedulableHours {
+  monday: TimeWindow[];
+  tuesday: TimeWindow[];
+  wednesday: TimeWindow[];
+  thursday: TimeWindow[];
+  friday: TimeWindow[];
+  saturday: TimeWindow[];
+  sunday: TimeWindow[];
+}
+
+export interface TimeWindow {
+  start: string;
+  end: string;
+}
+
+export interface Connection {
+  id: string;
+  user1Id: string;
+  user2Id: string;
+  status: 'connected';
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface Meeting {
   id: string;
-  connectionId: string;
+  organizerId: string;
+  attendeeId: string;
   title: string;
+  description?: string;
   startTime: Date;
   endTime: Date;
-  status: 'scheduled' | 'completed' | 'cancelled';
+  location?: string;
+  intent: 'first30m' | 'first1h' | 'coffee' | 'lunch' | 'dinner' | 'custom';
+  status: 'scheduled' | 'cancelled';
   meetingLink?: string;
   createdAt: Date;
+  updatedAt: Date;
 }
 
-export interface AvailabilitySlot {
+export interface TimeSlot {
+  start: string;
+  end: string;
+}
+
+export interface SuggestionChip {
   id: string;
-  integrationId: string;
-  dayOfWeek: string;
-  startTime: string;
-  endTime: string;
-  isAvailable: boolean;
-  createdAt: Date;
+  label: string;
+  intent: 'first30m' | 'first1h' | 'coffee' | 'lunch' | 'dinner';
+  duration: number;
+  bufferBefore?: number;
+  bufferAfter?: number;
+  timeWindow?: {
+    start: string;
+    end: string;
+  };
+  disabled?: boolean;
 }
 
-export interface TimeSlotSuggestion {
-  startTime: string;
-  endTime: string;
-  confidence: number;
-  date: string;
+export interface AvailabilityRequest {
+  user1Id: string;
+  user2Id: string;
+  startDate: string;
+  endDate: string;
+  duration: number;
+  intent?: string;
+}
+
+export interface AvailabilityResponse {
+  slots: TimeSlot[];
+  timezone: string;
 }
