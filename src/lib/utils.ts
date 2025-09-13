@@ -1,7 +1,12 @@
 import { type ClassValue, clsx } from "clsx"
-import { twMerge } from "tailwindcss-merge"
 import { startOfDay, format, parseISO } from 'date-fns'
-import type { TimeSlot, SuggestionType } from '@/types';
+export interface TimeSlot {
+  start: string;
+  end: string;
+  available: boolean;
+}
+
+export type SuggestionType = 'first_30min' | 'first_1hour' | 'morning_coffee' | 'lunch' | 'dinner';
 
 /**
  * Utility function to merge class names with clsx
@@ -53,7 +58,11 @@ export function formatDisplayDateTime(date: Date | string): string {
  */
 export function getNext3Days(): Date[] {
   const today = startOfDay(new Date());
-  return [today, addDays(today, 1), addDays(today, 2)];
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const dayAfterTomorrow = new Date(today);
+  dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2);
+  return [today, tomorrow, dayAfterTomorrow];
 }
 
 /**
@@ -61,7 +70,8 @@ export function getNext3Days(): Date[] {
  */
 export function isDateToday(date: Date | string): boolean {
   const dateObj = typeof date === 'string' ? parseISO(date) : date;
-  return isToday(dateObj);
+  const today = startOfDay(new Date());
+  return startOfDay(dateObj).getTime() === today.getTime();
 }
 
 /**
@@ -69,7 +79,8 @@ export function isDateToday(date: Date | string): boolean {
  */
 export function isDateWeekend(date: Date | string): boolean {
   const dateObj = typeof date === 'string' ? parseISO(date) : date;
-  return isWeekend(dateObj);
+  const day = dateObj.getDay();
+  return day === 0 || day === 6;
 }
 
 /**

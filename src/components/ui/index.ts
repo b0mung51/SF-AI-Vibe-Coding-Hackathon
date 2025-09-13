@@ -28,3 +28,4 @@ export {
   SelectScrollDownButton,
 } from './Select';
 export { QRCodeGenerator } from './QRCodeGenerator';
+export { MultiUserScheduler } from './MultiUserScheduler';

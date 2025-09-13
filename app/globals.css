@@ -24,3 +24,43 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Ensure form inputs have proper text color visibility */
+input, select, textarea {
+  color: #1f2937 !important; /* Dark gray text */
+}
+
+input::placeholder, select::placeholder, textarea::placeholder {
+  color: #9ca3af !important; /* Medium gray placeholder */
+}
+
+/* Ensure select options have proper text color */
+select option {
+  color: #1f2937 !important;
+  background: white !important;
+}
+
+/* Fix for Radix UI Select components */
+[data-radix-select-trigger] {
+  color: #1f2937 !important;
+}
+
+[data-radix-select-content] {
+  color: #1f2937 !important;
+}
+
+[data-radix-select-item] {
+  color: #1f2937 !important;
+}
+
+/* Ensure form elements are visible in both light and dark modes */
+@media (prefers-color-scheme: dark) {
+  input, select, textarea {
+    color: #1f2937 !important;
+    background: white !important;
+  }
+  
+  input::placeholder, select::placeholder, textarea::placeholder {
+    color: #9ca3af !important;
+  }
+}

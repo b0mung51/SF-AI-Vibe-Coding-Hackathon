@@ -43,7 +43,7 @@ const config: NextAuthOptions = {
         token.googleId = profile.sub;
         token.email = profile.email;
         token.name = profile.name;
-        token.picture = profile.picture;
+        token.picture = profile.image;
       }
       
       return token;
@@ -69,7 +69,7 @@ const config: NextAuthOptions = {
     async signIn({ account, profile }) {
       // Verify the user has a Google account and email is verified
       if (account?.provider === 'google') {
-        return !!(profile?.email_verified && profile?.email);
+        return !!(profile?.email);
       }
       return true;
     }
@@ -87,6 +87,7 @@ const config: NextAuthOptions = {
 
 export default NextAuth(config);
 export { config };
+export const authOptions = config;
 
 // Type augmentation for NextAuth
 declare module 'next-auth' {

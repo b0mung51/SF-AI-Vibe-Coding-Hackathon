@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Calendar, Clock, Users, Settings, Plus, Share2, Copy, ExternalLink } from 'lucide-react';
-import { Button, Card, CardContent, CardHeader, CardTitle, QRCodeGenerator } from '@/src/components/ui';
+import { Button, Card, CardContent, CardHeader, CardTitle, QRCodeGenerator, MultiUserScheduler } from '@/src/components/ui';
 import { Layout } from '@/src/components/layout/Layout';
 import { useOnboardingStore } from '@/src/store';
 
@@ -14,6 +14,7 @@ export default function DashboardPage() {
   const { isCompleted } = useOnboardingStore();
   const [copied, setCopied] = useState(false);
   const [showQR, setShowQR] = useState(false);
+  const [showMultiUserScheduler, setShowMultiUserScheduler] = useState(false);
 
   // Generate shareable URL based on user email or ID
   const shareableUrl = session?.user?.email 
@@ -61,6 +62,13 @@ export default function DashboardPage() {
       icon: Plus,
       href: '/schedule',
       color: 'bg-blue-500 hover:bg-blue-600',
+    },
+    {
+      title: 'Multi-User Meeting',
+      description: 'Find mutual availability for multiple people',
+      icon: Users,
+      action: 'multi-user',
+      color: 'bg-indigo-500 hover:bg-indigo-600',
     },
     {
       title: 'View Calendar',
@@ -203,7 +211,13 @@ export default function DashboardPage() {
                         </p>
                         <Button
                           size="sm"
-                          onClick={() => router.push(action.href)}
+                          onClick={() => {
+                            if (action.action === 'multi-user') {
+                              setShowMultiUserScheduler(true);
+                            } else if (action.href) {
+                              router.push(action.href);
+                            }
+                          }}
                         >
                           Get Started
                         </Button>
@@ -269,6 +283,29 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Multi-User Scheduler */}
+        {showMultiUserScheduler && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900">Multi-User Scheduling</h2>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowMultiUserScheduler(false)}
+              >
+                Close
+              </Button>
+            </div>
+            <MultiUserScheduler
+              onScheduleMeeting={(slot, users) => {
+                console.log('Scheduling meeting:', { slot, users });
+                // Here you would typically create the meeting
+                alert(`Meeting scheduled for ${new Date(slot.start).toLocaleString()} with ${users.map(u => u.name).join(', ')}`);
+              }}
+            />
+          </div>
+        )}
 
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

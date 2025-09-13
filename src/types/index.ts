@@ -116,8 +116,96 @@ export interface Booking {
   startTime: Date;
   endTime: Date;
   title: string;
+  description?: string;
+  location?: string;
   status: 'pending' | 'confirmed' | 'cancelled';
   bookingMethod: BookingMethod;
+  calcomBookingId?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Multi-user calendar and event types
+export interface CalendarEvent {
+  id: string;
+  userId: string;
+  title: string;
+  startTime: Date;
+  endTime: Date;
+  attendees: string[];
+  location?: string;
+  description?: string;
+  type: 'meeting' | 'focus' | 'break' | 'other';
+  source: 'google' | 'outlook' | 'calcom';
+  externalId?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface UserCalendarData {
+  userId: string;
+  events: CalendarEvent[];
+  availability: UserAvailability;
+  timezone: string;
+  lastSync: Date;
+}
+
+export interface UserAvailability {
+  userId: string;
+  timezone: string;
+  workingHours: WorkingHours;
+  lunchWindow: LunchWindow;
+  bufferTime: number; // minutes between meetings
+  lastUpdated: Date;
+}
+
+export interface MultiUserMeeting {
+  id: string;
+  organizerId: string;
+  title: string;
+  description?: string;
+  startTime: Date;
+  endTime: Date;
+  duration: number; // in minutes
+  participants: {
+    userId: string;
+    status: 'invited' | 'accepted' | 'declined' | 'tentative';
+    responseAt?: Date;
+  }[];
+  location?: string;
+  meetingUrl?: string;
+  status: 'draft' | 'scheduled' | 'cancelled' | 'completed';
+  availabilitySlotId?: string;
+  calcomEventId?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface AvailabilitySlotRecord {
+  id: string;
+  startTime: Date;
+  endTime: Date;
+  confidence: number;
+  availableUserIds: string[];
+  conflictingUserIds: string[];
+  reason: string;
+  type: 'meeting' | 'focus' | 'flexible';
+  requestId: string; // Links to the availability request
+  createdAt: Date;
+}
+
+export interface AvailabilityRequest {
+  id: string;
+  requesterId: string;
+  userIds: string[];
+  duration: number;
+  preferredTimeRange: { start: string; end: string };
+  excludeDays: number[];
+  lookAheadDays: number;
+  requireAllUsers: boolean;
+  status: 'pending' | 'completed' | 'failed';
+  createdAt: Date;
+  completedAt?: Date;
 }
 
 // API request and response types

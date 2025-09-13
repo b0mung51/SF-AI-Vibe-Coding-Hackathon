@@ -4,8 +4,7 @@ import React, { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Calendar, Globe, ArrowRight, ArrowLeft, Check, Link, Loader2, Zap } from 'lucide-react';
-import { Button, Card, CardContent, CardHeader, CardTitle, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/src/components/ui';
-import { Checkbox } from '@/src/components/ui/checkbox';
+import { Button, Card, CardContent, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/src/components/ui';
 import { useOnboardingStore } from '@/src/store';
 import { cn } from '@/src/lib/utils';
 

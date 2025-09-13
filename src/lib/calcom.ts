@@ -119,29 +119,73 @@ export interface CalcomSchedule {
 }
 
 class CalcomAPIClient {
-  private apiKey: string;
+  private clientId: string;
+  private clientSecret: string;
+  private organizationId: string;
   private baseURL: string;
+  private accessToken: string | null = null;
+  private tokenExpiry: number | null = null;
 
   constructor() {
-    this.apiKey = process.env.CALCOM_API_KEY || '';
-    this.baseURL = process.env.CALCOM_API_URL || 'https://api.cal.com/v1';
+    this.clientId = process.env.CALCOM_CLIENT_ID || '';
+    this.clientSecret = process.env.CALCOM_CLIENT_SECRET || '';
+    this.organizationId = process.env.CALCOM_ORGANIZATION_ID || '';
+    this.baseURL = 'https://api.cal.com/v2';
     
-    if (!this.apiKey) {
-      console.warn('Cal.com API key not found. Some features may not work.');
+    if (!this.clientId || !this.clientSecret || !this.organizationId) {
+      console.warn('Cal.com OAuth credentials not found. Some features may not work.');
     }
+  }
+
+  private async getAccessToken(): Promise<string> {
+    // Check if we have a valid token
+    if (this.accessToken && this.tokenExpiry && Date.now() < this.tokenExpiry) {
+      return this.accessToken;
+    }
+
+    // Get new access token using client credentials flow
+    const tokenUrl = 'https://api.cal.com/v2/oauth/token';
+    const response = await fetch(tokenUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        grant_type: 'client_credentials',
+        client_id: this.clientId,
+        client_secret: this.clientSecret,
+        scope: 'read write'
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Cal.com OAuth error: ${response.status} - ${errorText}`);
+    }
+
+    const tokenData = await response.json();
+    this.accessToken = tokenData.access_token;
+    this.tokenExpiry = Date.now() + (tokenData.expires_in * 1000) - 60000; // Subtract 1 minute for safety
+    
+    if (!this.accessToken) {
+      throw new Error('Access token is null');
+    }
+    return this.accessToken;
   }
 
   private async makeRequest<T>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
+    const token = await this.getAccessToken();
     const url = `${this.baseURL}${endpoint}`;
     
     const response = await fetch(url, {
       ...options,
       headers: {
-        'Authorization': `Bearer ${this.apiKey}`,
+        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
+        'cal-api-version': '2024-08-13',
         ...options.headers,
       },
     });

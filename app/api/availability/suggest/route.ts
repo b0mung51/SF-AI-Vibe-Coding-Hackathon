@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { availabilityInferenceService } from '@/src/lib/availabilityInference';
 import { calcomSyncService } from '@/src/lib/calcomSync';
+import { multiUserAvailabilityEngine } from '@/src/lib/multiUserAvailability';
 
 /**
  * POST /api/availability/suggest
- * Generate smart meeting time suggestions based on calendar patterns
+ * Generate smart meeting time suggestions for single or multiple users
  */
 export async function POST(request: NextRequest) {
   try {
@@ -19,14 +20,64 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const {
+      userIds, // Optional: if provided, will find mutual availability
       duration = 60, // Default 60 minutes
-      preferredTimeRange,
-      excludeDays,
-      lookAheadDays = 14
+      preferredTimeRange = { start: '09:00', end: '17:00' },
+      excludeDays = [],
+      lookAheadDays = 14,
+      requireAllUsers = true
     } = body;
 
-    // Get user's calendar events (this would typically come from your database)
-    // For now, we'll use a placeholder - in a real app, you'd fetch from your storage
+    // If multiple users specified, use multi-user availability engine
+    if (userIds && userIds.length > 1) {
+      const usersData = await multiUserAvailabilityEngine.syncMultipleUsers(userIds);
+      
+      if (usersData.length === 0) {
+        return NextResponse.json(
+          { error: 'Failed to sync calendar data for users' },
+          { status: 500 }
+        );
+      }
+
+      const availabilityRequest = {
+        userIds,
+        duration,
+        preferredTimeRange,
+        excludeDays,
+        lookAheadDays,
+        requireAllUsers
+      };
+
+      const result = await multiUserAvailabilityEngine.findMutualAvailability(
+        usersData,
+        availabilityRequest
+      );
+
+      return NextResponse.json({
+        suggestions: result.availableSlots.map(slot => ({
+          start: slot.start.toISOString(),
+          end: slot.end.toISOString(),
+          confidence: slot.confidence,
+          reason: slot.reason,
+          type: slot.type,
+          availableUsers: slot.availableUsers,
+          conflictingUsers: slot.conflictingUsers
+        })),
+        conflictAnalysis: result.conflictAnalysis,
+        recommendations: result.recommendations,
+        metadata: {
+          type: 'multi-user',
+          totalUsers: userIds.length,
+          syncedUsers: usersData.length,
+          duration,
+          lookAheadDays,
+          totalSuggestions: result.availableSlots.length,
+          generatedAt: new Date().toISOString()
+        }
+      });
+    }
+
+    // Single user suggestions (existing logic)
     const userEvents = await getUserCalendarEvents(session.user.email);
 
     // Generate suggestions
@@ -38,8 +89,15 @@ export async function POST(request: NextRequest) {
     );
 
     return NextResponse.json({
-      suggestions,
+      suggestions: suggestions.map(slot => ({
+        start: slot.start.toISOString(),
+        end: slot.end.toISOString(),
+        confidence: slot.confidence,
+        reason: slot.reason,
+        type: slot.type
+      })),
       metadata: {
+        type: 'single-user',
         duration,
         lookAheadDays,
         totalSuggestions: suggestions.length,
@@ -49,7 +107,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Availability suggestion error:', error);
     return NextResponse.json(
-      { error: 'Failed to generate suggestions' },
+      { error: 'Failed to generate suggestions', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

@@ -66,25 +66,37 @@ const generateMockCalendarData = () => {
     date.setDate(today.getDate() + i);
     
     const events = [];
-    // Generate some mock events
+    // Generate some mock events with more available slots
     if (i === 0) { // Today
       events.push(
         { start: 9, end: 10, type: 'busy', title: 'Team Standup' },
+        { start: 10, end: 11, type: 'mutual', title: 'Available' },
         { start: 11, end: 12, type: 'yours', title: 'Project Review' },
+        { start: 12, end: 13, type: 'mutual', title: 'Available' },
         { start: 14, end: 15.5, type: 'busy', title: 'Client Call' },
-        { start: 16, end: 17, type: 'mutual', title: 'Available' }
+        { start: 16, end: 17, type: 'mutual', title: 'Available' },
+        { start: 17, end: 18, type: 'mutual', title: 'Available' }
       );
     } else if (i === 1) { // Tomorrow
       events.push(
+        { start: 8, end: 9, type: 'mutual', title: 'Available' },
+        { start: 9, end: 10, type: 'mutual', title: 'Available' },
         { start: 10, end: 11, type: 'yours', title: 'Design Review' },
+        { start: 11, end: 12, type: 'mutual', title: 'Available' },
         { start: 13, end: 14, type: 'busy', title: 'Lunch Meeting' },
-        { start: 15, end: 16, type: 'mutual', title: 'Available' }
+        { start: 15, end: 16, type: 'mutual', title: 'Available' },
+        { start: 16, end: 17, type: 'mutual', title: 'Available' }
       );
     } else { // Day after
       events.push(
+        { start: 8, end: 9, type: 'mutual', title: 'Available' },
         { start: 9, end: 10, type: 'mutual', title: 'Available' },
+        { start: 10, end: 11, type: 'mutual', title: 'Available' },
         { start: 11, end: 12, type: 'busy', title: 'All Hands' },
-        { start: 14, end: 15, type: 'mutual', title: 'Available' }
+        { start: 12, end: 13, type: 'mutual', title: 'Available' },
+        { start: 13, end: 14, type: 'mutual', title: 'Available' },
+        { start: 14, end: 15, type: 'mutual', title: 'Available' },
+        { start: 15, end: 16, type: 'mutual', title: 'Available' }
       );
     }
     
@@ -286,23 +298,21 @@ export default function SchedulePage() {
         participants.push(...additionalAttendees);
       }
       
-      // Call the booking API
-      const response = await fetch('/api/meetings/book', {
+      // Call the Google Calendar meeting creation API
+      const response = await fetch('/api/meetings/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          slot: {
-            start: startTime.toISOString(),
-            end: endTime.toISOString()
-          },
-          participants: participants.filter(Boolean),
           title: meetingDetails.title,
           description: meetingDetails.description,
+          startTime: startTime.toISOString(),
+          endTime: endTime.toISOString(),
+          attendees: participants.filter(Boolean),
           location: meetingDetails.location,
-          method: connectedUser ? 'calcom' : 'deeplink', // Use Cal.com if connected, otherwise deep link
-          duration: meetingDetails.duration
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          createMeetLink: meetingDetails.location === 'Google Meet'
         }),
       });
       
@@ -310,11 +320,11 @@ export default function SchedulePage() {
       
       if (result.success) {
         const meetingTime = `${selectedTimeSlot.hour}:00`;
-        toast.success(`Meeting "${meetingDetails.title}" booked for ${selectedDay.dayName} at ${meetingTime}!`);
+        toast.success(`Meeting "${meetingDetails.title}" created and added to Google Calendar for ${selectedDay.dayName} at ${meetingTime}!`);
         
-        // If deep link was generated, open it
-        if (result.deepLink) {
-          window.open(result.deepLink, '_blank');
+        // If Google Meet link was created, show it to user
+        if (result.meeting?.meetingUrl) {
+          toast.success(`Google Meet link: ${result.meeting.meetingUrl}`);
         }
         
         // Reset form
@@ -478,9 +488,11 @@ export default function SchedulePage() {
                           'h-12 w-full rounded border-2 transition-all duration-200 text-xs font-medium',
                           isSelected && 'ring-4 ring-blue-300 scale-105',
                           hasEvent ? (
-                            `${getEventColor(hasEvent.type)} text-white border-transparent`
+                            hasEvent.type === 'mutual' 
+                              ? 'bg-green-500 text-white border-transparent hover:bg-green-600'
+                              : `${getEventColor(hasEvent.type)} text-white border-transparent`
                           ) : (
-                            'bg-white border-gray-200 hover:border-blue-300 hover:bg-blue-50'
+                            'bg-green-100 border-green-300 text-green-800 hover:bg-green-200 hover:border-green-400'
                           ),
                           !isAvailable && 'cursor-not-allowed opacity-60'
                         )}
