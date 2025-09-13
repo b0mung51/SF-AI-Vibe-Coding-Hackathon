@@ -1,78 +1,104 @@
-# Calendar Connection App - Product Requirements Document
+# Smart Calendar Scheduling App - Product Requirements Document
 
 ## 1. Product Overview
-A calendar connection platform that enables two users to connect their calendars and automatically find optimal meeting times based on their mutual availability.
 
-The app solves the common scheduling problem by integrating with Cal.com API to access user calendars, analyze availability patterns, and suggest convenient meeting slots for both parties.
+A standalone scheduling application that streamlines meeting coordination through Google Calendar integration and AI-powered suggestions. Users sign in with Google, share their availability via username/link, and schedule meetings using either AI recommendations or manual time selection with visual calendar overlays.
+
+The product solves the common problem of back-and-forth scheduling emails by providing instant availability visibility and intelligent meeting suggestions, targeting professionals and teams who frequently coordinate meetings across different calendar systems.
 
 ## 2. Core Features
 
 ### 2.1 User Roles
+
 | Role | Registration Method | Core Permissions |
 |------|---------------------|------------------|
-| Regular User | Email/Google registration via Firebase Auth | Can connect with other users, link calendars, view suggestions |
-| Premium User | Subscription upgrade | Advanced scheduling features, multiple calendar integrations, priority support |
+| Standard User | Google OAuth sign-in | Can view availability, schedule meetings, share calendar links |
+| Connected User | Google OAuth + Cal.com integration | Can auto-book meetings, access Outlook/iCloud calendars |
 
 ### 2.2 Feature Module
-Our calendar connection app consists of the following main pages:
-1. **Home page**: user dashboard, connection requests, recent meetings.
-2. **Connect page**: search users, send connection requests, manage connections.
-3. **Calendar page**: calendar integration setup, availability management, Cal.com linking.
-4. **Meetings page**: suggested time slots, meeting scheduling, confirmation system.
-5. **Profile page**: user settings, calendar preferences, notification controls.
+
+Our scheduling app consists of the following main pages:
+
+1. **Onboarding page**: Google OAuth integration, calendar permissions setup, working hours configuration.
+2. **Profile page**: User settings, working hours management, Cal.com connection, shareable link generation.
+3. **Scheduling page**: AI suggestion chips, 3-day manual overlay picker, duration selection, booking confirmation.
+4. **Connection page**: User discovery via shared links/usernames, profile viewing, scheduling initiation.
 
 ### 2.3 Page Details
+
 | Page Name | Module Name | Feature description |
 |-----------|-------------|---------------------|
-| Home page | Dashboard | Display active connections, pending requests, upcoming meetings |
-| Home page | Quick Actions | Fast access to connect new user, view calendar, schedule meeting |
-| Connect page | User Search | Search users by email, name, or username with real-time results |
-| Connect page | Connection Management | Send/accept/decline connection requests, view connection status |
-| Calendar page | Cal.com Integration | Link Cal.com account, authenticate calendar access, sync availability |
-| Calendar page | Availability Settings | Set working hours, time zones, buffer times between meetings |
-| Meetings page | Time Slot Suggestions | Display common free time slots with conflict detection |
-| Meetings page | Meeting Scheduler | Create meeting invites, set duration, add meeting details |
-| Profile page | Account Settings | Update profile information, notification preferences, privacy settings |
-| Profile page | Calendar Preferences | Configure default meeting duration, preferred time ranges |
+| Onboarding page | Google OAuth | Authenticate with Google, request calendar.readonly and calendar.events permissions |
+| Onboarding page | Cal.com Connect | Optional integration for Outlook/iCloud calendar support |
+| Onboarding page | Working Hours Setup | Configure daily working hours, lunch window, timezone preferences |
+| Profile page | Settings Management | Edit working hours, lunch breaks, blackout dates, notification preferences |
+| Profile page | Link Sharing | Generate and manage shareable profile links and usernames |
+| Profile page | Calendar Sources | Manage connected calendar accounts and sync preferences |
+| Scheduling page | AI Suggestions | Display 5 suggestion chips: First 30-min, First 1-hour, Morning coffee, Lunch, Dinner |
+| Scheduling page | Manual Overlay | 3-day calendar view with color-coded availability (red=busy, yellow=your events, green=free) |
+| Scheduling page | Duration Lock | Set and lock meeting duration with minDuration == maxDuration |
+| Scheduling page | Booking Confirmation | Floating confirm button, confirmation dialog, deep-link or Cal.com booking |
+| Connection page | User Discovery | Access other users via shared links or username search |
+| Connection page | Profile Viewing | View other user's availability and initiate scheduling |
 
 ## 3. Core Process
-**User Connection Flow:**
-Users register and search for other users to connect with. They send connection requests which must be accepted before calendar integration becomes available.
 
-**Calendar Integration Flow:**
-Once connected, users link their Cal.com accounts to share availability data. The system syncs calendar information and identifies mutual free time slots.
+**Standard User Flow:**
+1. User signs in with Google and grants calendar permissions
+2. User configures working hours and preferences
+3. User shares their profile link/username with others
+4. Other users access the profile and initiate scheduling
+5. Scheduling interface shows AI suggestions and manual overlay options
+6. User selects preferred time slot and confirms
+7. System generates deep-link to Google/Outlook Calendar for event creation
 
-**Meeting Scheduling Flow:**
-Users view suggested meeting times, select preferred slots, and create meeting invites that are sent to both parties for confirmation.
+**Connected User Flow (Cal.com):**
+1. Follow steps 1-6 from Standard User Flow
+2. System automatically creates calendar event via Cal.com API
+3. Both participants receive calendar invitations
 
 ```mermaid
 graph TD
-  A[Home Page] --> B[Connect Page]
-  B --> C[Calendar Page]
-  C --> D[Meetings Page]
-  D --> E[Profile Page]
-  A --> D
-  A --> E
-  B --> A
+    A[Google Sign-in] --> B[Calendar Permissions]
+    B --> C[Working Hours Setup]
+    C --> D[Profile Creation]
+    D --> E[Share Link/Username]
+    E --> F[Connection Page]
+    F --> G[Scheduling Page]
+    G --> H{Scheduling Method}
+    H -->|AI Suggestions| I[Select Suggestion Chip]
+    H -->|Manual| J[3-Day Overlay Picker]
+    I --> K[Confirm Slot]
+    J --> K
+    K --> L{Booking Method}
+    L -->|MVP| M[Deep-link to Calendar]
+    L -->|Cal.com| N[Auto-book Event]
 ```
 
 ## 4. User Interface Design
+
 ### 4.1 Design Style
-- Primary colors: Blue (#2563EB), Green (#10B981)
-- Secondary colors: Gray (#6B7280), White (#FFFFFF)
-- Button style: Rounded corners with subtle shadows
-- Font: Inter, 14px base size for body text, 18px for headings
-- Layout style: Clean card-based design with top navigation
-- Icons: Heroicons for consistency, calendar and clock emojis for visual appeal
+
+- **Primary Colors**: Google Blue (#4285F4), Success Green (#34A853)
+- **Secondary Colors**: Warning Yellow (#FBBC04), Error Red (#EA4335), Neutral Gray (#9AA0A6)
+- **Button Style**: Rounded corners (8px radius), Material Design elevation
+- **Font**: Google Sans, 14px base size, 16px for headers
+- **Layout Style**: Card-based design with clean spacing, top navigation with user avatar
+- **Icons**: Material Design icons, calendar and scheduling-focused emoji (📅, ⏰, ☕)
 
 ### 4.2 Page Design Overview
+
 | Page Name | Module Name | UI Elements |
 |-----------|-------------|-------------|
-| Home page | Dashboard | Card layout with connection status, gradient backgrounds, floating action button |
-| Connect page | User Search | Search bar with autocomplete, user cards with profile photos, connection status badges |
-| Calendar page | Integration Setup | Step-by-step wizard, progress indicators, Cal.com branding integration |
-| Meetings page | Time Suggestions | Calendar grid view, time slot cards with availability indicators, conflict warnings |
-| Profile page | Settings Panel | Form inputs with validation, toggle switches, profile photo upload |
+| Onboarding page | Google OAuth | Large "Sign in with Google" button, permission explanation cards, progress indicators |
+| Onboarding page | Working Hours Setup | Time picker components, timezone dropdown, visual schedule grid |
+| Profile page | Settings Management | Form inputs with validation, toggle switches, time range selectors |
+| Profile page | Link Sharing | Copy-to-clipboard button, QR code generation, social sharing options |
+| Scheduling page | AI Suggestions | 5 colored chip buttons with icons, loading states, earliest available time display |
+| Scheduling page | Manual Overlay | 3-column calendar grid, color-coded time slots, event title tooltips, floating action button |
+| Scheduling page | Booking Confirmation | Modal dialog with slot details, participant info, booking method selection |
+| Connection page | User Discovery | Search bar, user cards with availability preview, connection status indicators |
 
 ### 4.3 Responsiveness
-Mobile-first responsive design with touch-optimized interactions. Desktop version provides enhanced calendar views and multi-panel layouts for better productivity.
+
+Desktop-first design with mobile-adaptive layouts. Touch interaction optimization for mobile overlay picker with larger touch targets (44px minimum). Responsive breakpoints at 768px (tablet) and 480px (mobile) with collapsible navigation and stacked card layouts.

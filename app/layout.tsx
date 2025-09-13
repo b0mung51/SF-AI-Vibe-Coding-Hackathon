@@ -1,20 +1,11 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import { SessionProvider } from "@/src/components/providers/SessionProvider";
+import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
-  title: "Cal Connect - Calendar Connection App",
-  description: "Connect your calendar and find optimal meeting times with others. Built for SF AI Vibe Coding Hackathon.",
+  title: "CalConnect - Smart Calendar Scheduling",
+  description: "Streamline meeting coordination with AI-powered suggestions and visual calendar overlays.",
 };
 
 export default function RootLayout({
@@ -24,10 +15,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
+      <body className="antialiased">
+        <SessionProvider>
+          {children}
+          <Toaster />
+        </SessionProvider>
       </body>
     </html>
   );
