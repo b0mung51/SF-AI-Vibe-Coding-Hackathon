@@ -264,7 +264,7 @@ export default function SchedulePage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="animate-pulse">
-          <div className="w-16 h-16 bg-blue-500 rounded-full"></div>
+          <div className="w-16 h-16 gradient-icon rounded-full"></div>
         </div>
       </div>
     );
@@ -321,7 +321,7 @@ export default function SchedulePage() {
                           <p className="font-medium text-gray-900">
                             {slot.label || formatSlotTime(slot)}
                           </p>
-                          <p className="text-sm text-blue-600 mt-1">Schedule →</p>
+                          <p className="text-sm gradient-link mt-1">Schedule →</p>
                         </button>
                       ))}
                     </div>
@@ -380,7 +380,7 @@ export default function SchedulePage() {
             <button
               onClick={handleSend}
               disabled={!input.trim() || isProcessing}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-4 py-2 gradient-primary text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
@@ -415,7 +415,7 @@ export default function SchedulePage() {
               className="w-12 h-12 rounded-full"
             />
           ) : (
-            <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold">
+            <div className="w-12 h-12 rounded-full gradient-icon flex items-center justify-center text-white font-semibold"
               {targetUser.displayName?.[0] || 'U'}
             </div>
           )}

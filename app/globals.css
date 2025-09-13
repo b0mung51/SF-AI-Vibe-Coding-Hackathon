@@ -3,6 +3,12 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* Energizing red to yellow gradient for meeting new people */
+  --primary-gradient: linear-gradient(135deg, #ef4444 0%, #f59e0b 100%);
+  --primary-gradient-hover: linear-gradient(135deg, #dc2626 0%, #d97706 100%);
+  --icon-gradient: linear-gradient(135deg, #fecaca 0%, #fde68a 100%);
+  --link-gradient: linear-gradient(135deg, #f87171 0%, #fbbf24 100%);
 }
 
 @theme inline {
@@ -16,7 +22,33 @@
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+
+    /* Adjusted red to yellow gradients for dark mode */
+    --primary-gradient: linear-gradient(135deg, #f87171 0%, #fbbf24 100%);
+    --primary-gradient-hover: linear-gradient(135deg, #ef4444 0%, #f59e0b 100%);
+    --icon-gradient: linear-gradient(135deg, #fecaca 0%, #fde68a 100%);
+    --link-gradient: linear-gradient(135deg, #f87171 0%, #fbbf24 100%);
   }
+}
+
+/* Utility classes for gradient buttons and elements */
+.gradient-primary {
+  background: var(--primary-gradient);
+}
+
+.gradient-primary:hover {
+  background: var(--primary-gradient-hover);
+}
+
+.gradient-icon {
+  background: var(--icon-gradient);
+}
+
+.gradient-link {
+  background: var(--link-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 body {

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { getUserCalendars, addCalendar, updateCalendar, getDefaultSchedulableHours } from '@/app/lib/db';
+import { createCalcomManagedUser } from '@/app/lib/calcom';
 import type { Calendar, SchedulableHours, TimeWindow } from '@/app/types';
 
 const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const;
@@ -48,18 +49,28 @@ export default function CalendarsPage() {
   const handleAddCalendar = async () => {
     setIsAddingCalendar(true);
     try {
-      // TODO: Implement Cal.com OAuth flow
-      // For now, simulate adding a calendar
+      console.log('Creating Cal.com managed user...');
+
+      // Create managed user in Cal.com using platform API
+      const calcomUser = await createCalcomManagedUser(
+        user!.email,
+        user!.displayName || 'User'
+      );
+
+      console.log('Cal.com managed user created:', calcomUser);
+
+      // Create a calendar entry in our database
       const isFirstCalendar = calendars.length === 0;
       const category = isFirstCalendar ? 'personal' : 'work';
 
       const newCalendar: Omit<Calendar, 'id' | 'createdAt' | 'updatedAt'> = {
         userId: user!.id,
-        provider: 'google',
+        provider: 'calcom',
         email: user!.email,
         category,
         isDefault: isFirstCalendar || (category === 'work' && !calendars.find(c => c.category === 'work' && c.isDefault)),
         schedulableHours: getDefaultSchedulableHours(category),
+        calcomIntegrationId: calcomUser.managedUserId,
       };
 
       const calendarId = await addCalendar(newCalendar);
@@ -67,8 +78,11 @@ export default function CalendarsPage() {
 
       setCalendars([...calendars, createdCalendar]);
       setExpandedCalendar(calendarId);
+
+      alert('Cal.com calendar successfully connected!');
     } catch (error) {
-      console.error('Error adding calendar:', error);
+      console.error('Error creating Cal.com managed user:', error);
+      alert('Cal.com integration error: ' + error.message);
     } finally {
       setIsAddingCalendar(false);
     }
@@ -184,7 +198,7 @@ export default function CalendarsPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
-            <h1 className="text-2xl font-bold text-gray-900">Manage Calendars</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Edit Profile</h1>
           </div>
         </div>
 

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/contexts/AuthContext';
+import { createCalcomManagedUser } from '@/app/lib/calcom';
 
 export default function OnboardingPage() {
   const { user, loading } = useAuth();
@@ -18,12 +19,22 @@ export default function OnboardingPage() {
   const handleConnectCalendar = async () => {
     setConnecting(true);
     try {
-      // TODO: Implement Cal.com OAuth flow
-      // For now, simulate connection
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      console.log('Creating Cal.com managed user from onboarding...');
+
+      // Create managed user in Cal.com
+      const calcomUser = await createCalcomManagedUser(
+        user!.email,
+        user!.displayName || 'User'
+      );
+
+      console.log('Cal.com managed user created in onboarding:', calcomUser);
+
+      // TODO: Store Cal.com credentials in user profile
+      // For now, just proceed to home
       router.push('/home');
     } catch (error) {
       console.error('Calendar connection error:', error);
+      alert('Cal.com integration error: ' + error.message);
       setConnecting(false);
     }
   };
@@ -36,7 +47,7 @@ export default function OnboardingPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
         <div className="animate-pulse">
-          <div className="w-16 h-16 bg-blue-500 rounded-full"></div>
+          <div className="w-16 h-16 gradient-icon rounded-full"></div>
         </div>
       </div>
     );
@@ -57,7 +68,7 @@ export default function OnboardingPage() {
             <button
               onClick={handleConnectCalendar}
               disabled={connecting}
-              className="w-full py-3 px-4 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="w-full py-3 px-4 gradient-primary text-white font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {connecting ? (
                 <span className="flex items-center justify-center gap-2">

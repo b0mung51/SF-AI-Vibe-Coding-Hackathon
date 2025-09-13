@@ -27,20 +27,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      console.log('Auth state changed:', firebaseUser?.uid || 'signed out');
       setFirebaseUser(firebaseUser);
 
       if (firebaseUser) {
         try {
+          console.log('Fetching user data from Firestore...');
           const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
           if (userDoc.exists()) {
-            setUser(userDoc.data() as User);
+            const userData = userDoc.data() as User;
+            console.log('User data loaded:', userData.username);
+            setUser(userData);
+          } else {
+            console.log('No user document found in Firestore');
+            setUser(null);
           }
         } catch (error) {
           console.error('Error fetching user data:', error);
+          // If Firestore fails, create a minimal user object from Firebase
+          setUser({
+            id: firebaseUser.uid,
+            email: firebaseUser.email!,
+            displayName: firebaseUser.displayName || 'User',
+            username: firebaseUser.email?.split('@')[0] || 'user',
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          } as User);
         }
       } else {
+        console.log('User signed out');
         setUser(null);
       }
+      console.log('Setting loading to false');
       setLoading(false);
     });
 

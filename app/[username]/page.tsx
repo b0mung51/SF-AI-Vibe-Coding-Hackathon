@@ -55,7 +55,7 @@ export default function UserProfilePage() {
       });
 
       if (response.ok) {
-        router.push(`/schedule/${profileUser.username}`);
+        router.push(`/${profileUser.username}/schedule`);
       }
     } catch (error) {
       console.error('Error warming up availability:', error);
@@ -81,7 +81,7 @@ export default function UserProfilePage() {
           <h2 className="text-2xl font-bold text-gray-900 mb-2">User not found</h2>
           <button
             onClick={() => router.push('/')}
-            className="text-blue-600 hover:text-blue-700"
+            className="gradient-link hover:opacity-80 transition-opacity"
           >
             Go home
           </button>
@@ -116,7 +116,7 @@ export default function UserProfilePage() {
                 className="w-24 h-24 rounded-full mb-4"
               />
             ) : (
-              <div className="w-24 h-24 rounded-full bg-blue-500 flex items-center justify-center text-white text-2xl font-semibold mb-4">
+              <div className="w-24 h-24 rounded-full gradient-icon flex items-center justify-center text-white text-2xl font-semibold mb-4">
                 {profileUser.displayName?.[0] || 'U'}
               </div>
             )}
@@ -150,7 +150,7 @@ export default function UserProfilePage() {
           <button
             onClick={handleSchedule}
             disabled={warmingUp}
-            className="w-full py-3 px-4 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+            className="w-full py-3 px-4 gradient-primary text-white font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
           >
             {warmingUp ? (
               <>
@@ -176,7 +176,7 @@ export default function UserProfilePage() {
             <p className="text-blue-700">This is your profile</p>
             <button
               onClick={() => router.push('/home')}
-              className="mt-2 text-blue-600 hover:text-blue-700 font-medium"
+              className="mt-2 gradient-link hover:opacity-80 transition-opacity font-medium"
             >
               Go to dashboard
             </button>

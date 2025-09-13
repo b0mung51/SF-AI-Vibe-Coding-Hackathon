@@ -11,17 +11,22 @@ export default function Home() {
 
   useEffect(() => {
     if (!loading && user) {
-      router.push('/home');
+      console.log('User detected on page load, redirecting to home');
+      router.replace('/home');
     }
   }, [user, loading, router]);
 
   const handleSignIn = async () => {
     try {
+      console.log('Starting sign in...');
       const result = await signInWithGoogle();
+      console.log('Sign in result:', result);
       if (result.isNewUser) {
-        router.push('/onboarding');
+        console.log('New user, redirecting to onboarding');
+        router.replace('/onboarding');
       } else {
-        router.push('/home');
+        console.log('Existing user, redirecting to home');
+        router.replace('/home');
       }
     } catch (error) {
       console.error('Sign in error:', error);
@@ -32,7 +37,7 @@ export default function Home() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
         <div className="animate-pulse">
-          <div className="w-16 h-16 bg-blue-500 rounded-full"></div>
+          <div className="w-16 h-16 gradient-icon rounded-full"></div>
         </div>
       </div>
     );
@@ -55,7 +60,7 @@ export default function Home() {
 
           <button
             onClick={handleSignIn}
-            className="w-full flex items-center justify-center gap-3 px-6 py-3 bg-white border-2 border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 hover:border-gray-400 transition-colors"
+            className="w-full flex items-center justify-center gap-3 px-6 py-3 gradient-primary text-white font-medium rounded-lg transition-colors"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path
