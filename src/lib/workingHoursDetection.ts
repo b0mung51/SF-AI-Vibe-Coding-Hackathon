@@ -69,11 +69,11 @@ class WorkingHoursDetectionService {
       });
 
       if (bookings.length === 0) {
-        return this.getDefaultWorkingHours(timeZone);
+        return this.getDefaultWorkingHours(_timeZone);
       }
 
       // Analyze patterns
-      const analysis = this.analyzeBookingPatterns(bookings, timeZone);
+      const analysis = this.analyzeBookingPatterns(bookings, _timeZone);
       const workingHours = this.detectDailyWorkingHours(analysis);
       const lunchWindow = this.detectLunchWindow(analysis);
       const overallConfidence = this.calculateOverallConfidence(analysis, workingHours);
@@ -96,7 +96,7 @@ class WorkingHoursDetectionService {
       };
     } catch (error) {
       console.error('Error analyzing working hours:', error);
-      return this.getDefaultWorkingHours(timeZone);
+      return this.getDefaultWorkingHours(_timeZone);
     }
   }
 
@@ -326,16 +326,14 @@ class WorkingHoursDetectionService {
    */
   private calculateOverallConfidence(
     analysis: {
+      dayPatterns: Record<string, Array<{ start: number; end: number; date: string }>>;
       uniqueDaysWithMeetings: number;
       averageMeetingsPerDay: number;
     },
     workingHours: Record<string, WorkingHoursPattern>
   ): number {
-    const { totalBookings, uniqueDaysWithMeetings, averageMeetingsPerDay } = analysis.analysisMetadata || {
-      totalBookings: analysis.dayPatterns ? Object.values(analysis.dayPatterns).flat().length : 0,
-      uniqueDaysWithMeetings: analysis.uniqueDaysWithMeetings || 0,
-      averageMeetingsPerDay: analysis.averageMeetingsPerDay || 0
-    };
+    const totalBookings = analysis.dayPatterns ? Object.values(analysis.dayPatterns).flat().length : 0;
+    const { uniqueDaysWithMeetings, averageMeetingsPerDay } = analysis;
 
     // Factors that increase confidence
     const dataVolumeScore = Math.min(1, totalBookings / 50); // More bookings = higher confidence

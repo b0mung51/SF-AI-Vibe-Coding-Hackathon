@@ -1,6 +1,6 @@
 import { type ClassValue, clsx } from "clsx"
-import { twMerge } from "tailwindcss-merge"
-import { startOfDay, format, parseISO } from 'date-fns'
+import { twMerge } from "tailwind-merge"
+import { startOfDay, format, parseISO, addDays, isToday, isWeekend } from 'date-fns'
 import type { TimeSlot, SuggestionType } from '@/types';
 
 /**
