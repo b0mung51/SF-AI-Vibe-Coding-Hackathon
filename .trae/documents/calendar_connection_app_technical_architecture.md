@@ -1,148 +1,170 @@
-# Calendar Connection App - Technical Architecture Document
+# Smart Calendar Scheduling App - Technical Architecture Document
 
 ## 1. Architecture Design
 
 ```mermaid
 graph TD
-  A[User Browser] --> B[React Frontend Application]
-  B --> C[Python Flask Backend]
-  C --> D[Firebase Authentication]
-  C --> E[Firebase Firestore Database]
-  C --> F[Cal.com API]
-  C --> G[Redis Cache]
+    A[User Browser] --> B[Next.js Frontend Application]
+    B --> C[Express.js Backend API]
+    C --> D[Firestore Database]
+    C --> E[Redis Cache]
+    C --> F[Google Calendar API]
+    C --> G[Cal.com API]
+    C --> H[OpenAI API Service]
 
-  subgraph "Frontend Layer"
-      B
-  end
+    subgraph "Frontend Layer"
+        B
+    end
 
-  subgraph "Backend Layer"
-      C
-      G
-  end
+    subgraph "Backend Layer"
+        C
+        E
+    end
 
-  subgraph "Data Layer"
-      D
-      E
-  end
+    subgraph "Data Layer"
+        D
+    end
 
-  subgraph "External Services"
-      F
-  end
+    subgraph "External Services"
+        F
+        G
+        H
+    end
 ```
 
 ## 2. Technology Description
-- Frontend: React@18 + tailwindcss@3 + vite
-- Backend: Python Flask@2.3 + firebase-admin@6.2 + requests@2.31
-- Database: Firebase Firestore
-- Cache: Redis@7.0
-- External API: Cal.com API v1
+
+- Frontend: Next.js@14 + TypeScript + Tailwind CSS + React@18
+- Backend: Express@4 + TypeScript + Node.js
+- Database: Firestore (Google Cloud)
+- Cache: Redis (5-10 min TTL)
+- Authentication: Google OAuth 2.0
+- External APIs: Google Calendar API, Cal.com API, OpenAI API
 
 ## 3. Route Definitions
+
 | Route | Purpose |
-|-------|---------|
-| /home | Home dashboard displaying connections and meetings |
-| /connect | User search and connection management |
-| /calendar | Calendar integration and availability settings |
-| /meetings | Meeting suggestions and scheduling interface |
-| /profile | User profile and preferences management |
-| /login | Firebase authentication login page |
-| /register | User registration with Firebase Auth |
+|-------|----------|
+| / | Landing page with sign-in options |
+| /onboarding | Initial setup flow for new users |
+| /profile | User settings and preferences management |
+| /schedule/[username] | Scheduling interface for specific user |
+| /connect | User discovery and connection management |
+| /auth/callback | OAuth callback handling |
 
 ## 4. API Definitions
 
 ### 4.1 Core API
 
-**User Authentication**
+**Authentication**
 ```
-POST /api/auth/verify-token
-```
-Request:
-| Param Name | Param Type | isRequired | Description |
-|------------|------------|------------|-------------|
-| token | string | true | Firebase ID token |
-
-Response:
-| Param Name | Param Type | Description |
-|------------|------------|-------------|
-| success | boolean | Authentication status |
-| user_id | string | Firebase user ID |
-
-**Connection Management**
-```
-POST /api/connections/request
+POST /api/auth/google
 ```
 Request:
 | Param Name | Param Type | isRequired | Description |
 |------------|------------|------------|-------------|
-| target_email | string | true | Email of user to connect with |
-| message | string | false | Optional connection message |
+| code | string | true | Google OAuth authorization code |
+| state | string | false | CSRF protection state |
 
 Response:
 | Param Name | Param Type | Description |
 |------------|------------|-------------|
-| success | boolean | Request status |
-| connection_id | string | Unique connection identifier |
+| token | string | JWT access token |
+| user | UserProfile | User profile information |
 
-**Calendar Integration**
+**Availability Management**
 ```
-POST /api/calendar/connect-calcom
+GET /api/availability
 ```
 Request:
 | Param Name | Param Type | isRequired | Description |
 |------------|------------|------------|-------------|
-| calcom_api_key | string | true | Cal.com API key |
-| calcom_user_id | string | true | Cal.com user identifier |
+| user | string | true | User ID or username |
+| from | string | true | Start date (ISO 8601) |
+| to | string | true | End date (ISO 8601) |
 
 Response:
 | Param Name | Param Type | Description |
 |------------|------------|-------------|
-| success | boolean | Integration status |
-| sync_status | string | Calendar sync result |
+| slots | AvailabilitySlot[] | Available time slots |
+| busy | BusySlot[] | Busy time periods |
 
-**Meeting Suggestions**
+**Mutual Availability**
 ```
-GET /api/meetings/suggestions/{connection_id}
+POST /api/mutual-availability
 ```
+Request:
+| Param Name | Param Type | isRequired | Description |
+|------------|------------|------------|-------------|
+| participants | string[] | true | Array of user IDs |
+| range | DateRange | true | Date range to check |
+| duration | number | true | Meeting duration in minutes |
+
 Response:
 | Param Name | Param Type | Description |
 |------------|------------|-------------|
-| suggestions | array | Available time slots |
-| timezone | string | Suggested timezone |
+| mutualSlots | TimeSlot[] | Available mutual time slots |
 
-Example Response:
-```json
-{
-  "suggestions": [
-    {
-      "start_time": "2024-01-15T14:00:00Z",
-      "end_time": "2024-01-15T15:00:00Z",
-      "confidence": 0.95
-    }
-  ],
-  "timezone": "America/New_York"
-}
+**AI Suggestions**
 ```
+POST /api/suggest
+```
+Request:
+| Param Name | Param Type | isRequired | Description |
+|------------|------------|------------|-------------|
+| participants | string[] | true | Array of user IDs |
+| intents | SuggestionType[] | true | Types of suggestions needed |
+| preferences | SchedulingPrefs | false | Additional preferences |
+
+Response:
+| Param Name | Param Type | Description |
+|------------|------------|-------------|
+| suggestions | Suggestion[] | AI-generated time suggestions |
+
+**Booking**
+```
+POST /api/book
+```
+Request:
+| Param Name | Param Type | isRequired | Description |
+|------------|------------|------------|-------------|
+| slot | TimeSlot | true | Selected time slot |
+| participants | string[] | true | Meeting participants |
+| method | BookingMethod | true | 'deeplink' or 'calcom' |
+| title | string | false | Meeting title |
+
+Response:
+| Param Name | Param Type | Description |
+|------------|------------|-------------|
+| bookingUrl | string | Deep-link URL or booking confirmation |
+| status | string | Booking status |
 
 ## 5. Server Architecture Diagram
 
 ```mermaid
 graph TD
-  A[Client Request] --> B[Flask Router]
-  B --> C[Authentication Middleware]
-  C --> D[Controller Layer]
-  D --> E[Service Layer]
-  E --> F[Repository Layer]
-  F --> G[(Firebase Firestore)]
-  E --> H[Cal.com API Client]
-  E --> I[Redis Cache]
+    A[Client Request] --> B[Next.js API Routes]
+    B --> C[Authentication Middleware]
+    C --> D[Controller Layer]
+    D --> E[Service Layer]
+    E --> F[Adapter Layer]
+    F --> G[External APIs]
+    E --> H[Cache Layer]
+    E --> I[Database Layer]
 
-  subgraph Server
-      B
-      C
-      D
-      E
-      F
-  end
+    subgraph "Server Components"
+        B
+        C
+        D
+        E
+        F
+        H
+        I
+    end
+
+    subgraph "External Services"
+        G
+    end
 ```
 
 ## 6. Data Model
@@ -151,145 +173,215 @@ graph TD
 
 ```mermaid
 erDiagram
-  USERS ||--o{ CONNECTIONS : creates
-  USERS ||--o{ CALENDAR_INTEGRATIONS : has
-  CONNECTIONS ||--o{ MEETINGS : generates
-  CALENDAR_INTEGRATIONS ||--o{ AVAILABILITY_SLOTS : contains
-
-  USERS {
-      string id PK
-      string email
-      string display_name
-      string timezone
-      timestamp created_at
-      timestamp updated_at
-  }
-  
-  CONNECTIONS {
-      string id PK
-      string requester_id FK
-      string target_id FK
-      string status
-      string message
-      timestamp created_at
-      timestamp accepted_at
-  }
-  
-  CALENDAR_INTEGRATIONS {
-      string id PK
-      string user_id FK
-      string calcom_api_key
-      string calcom_user_id
-      boolean is_active
-      timestamp last_sync
-      timestamp created_at
-  }
-  
-  MEETINGS {
-      string id PK
-      string connection_id FK
-      string title
-      timestamp start_time
-      timestamp end_time
-      string status
-      string meeting_link
-      timestamp created_at
-  }
-  
-  AVAILABILITY_SLOTS {
-      string id PK
-      string integration_id FK
-      string day_of_week
-      time start_time
-      time end_time
-      boolean is_available
-      timestamp created_at
-  }
+    USER ||--o{ CALENDAR_SOURCE : has
+    USER ||--|| AVAILABILITY_PREFS : configures
+    USER ||--o{ BOOKING : participates
+    CALENDAR_SOURCE ||--o{ CACHED_AVAILABILITY : generates
+    
+    USER {
+        string id PK
+        string email
+        string name
+        string username
+        string googleId
+        timestamp createdAt
+        timestamp updatedAt
+    }
+    
+    CALENDAR_SOURCE {
+        string id PK
+        string userId FK
+        string calUserId
+        string providerCategory
+        boolean isDefault
+        string accessToken
+        timestamp lastSync
+    }
+    
+    AVAILABILITY_PREFS {
+        string id PK
+        string userId FK
+        json workingHours
+        json lunchWindow
+        string timezone
+        json blackoutDates
+    }
+    
+    CACHED_AVAILABILITY {
+        string id PK
+        string userId FK
+        date dateRange
+        json slots
+        timestamp expiresAt
+    }
+    
+    BOOKING {
+        string id PK
+        string organizerId FK
+        json participants
+        timestamp startTime
+        timestamp endTime
+        string title
+        string status
+        string bookingMethod
+    }
 ```
 
 ### 6.2 Data Definition Language
 
 **Users Collection (users)**
 ```javascript
-// Firestore collection structure
+// Firestore collection: users
 {
-  "id": "auto-generated-doc-id",
-  "email": "user@example.com",
-  "display_name": "John Doe",
-  "timezone": "America/New_York",
-  "created_at": "2024-01-01T00:00:00Z",
-  "updated_at": "2024-01-01T00:00:00Z"
+  id: string, // Auto-generated document ID
+  email: string,
+  name: string,
+  username: string, // Unique username for sharing
+  googleId: string,
+  avatar: string,
+  createdAt: Timestamp,
+  updatedAt: Timestamp
 }
 
-// Firestore security rules
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+// Firestore indexes
+// Composite index on username (ascending)
+// Composite index on email (ascending)
+```
+
+**Calendar Sources Collection (calendar_sources)**
+```javascript
+// Firestore collection: calendar_sources
+{
+  id: string,
+  userId: string,
+  calUserId: string, // Cal.com user ID
+  providerCategory: string, // 'work' | 'personal'
+  isDefault: boolean,
+  accessToken: string, // Encrypted
+  refreshToken: string, // Encrypted
+  lastSync: Timestamp,
+  createdAt: Timestamp
+}
+
+// Firestore indexes
+// Composite index on userId (ascending), isDefault (descending)
+```
+
+**Availability Preferences Collection (availability_prefs)**
+```javascript
+// Firestore collection: availability_prefs
+{
+  id: string,
+  userId: string,
+  workingHours: {
+    monday: { start: '09:00', end: '17:00', enabled: true },
+    tuesday: { start: '09:00', end: '17:00', enabled: true },
+    // ... other days
+  },
+  lunchWindow: {
+    start: '12:00',
+    end: '13:00',
+    enabled: true
+  },
+  timezone: string,
+  blackoutDates: Date[],
+  createdAt: Timestamp,
+  updatedAt: Timestamp
+}
+```
+
+**Redis Cache Schema**
+```javascript
+// Redis keys and TTL
+// Key: availability:{userId}:{dateRange}
+// TTL: 300 seconds (5 minutes)
+{
+  slots: [
+    {
+      start: '2024-01-15T09:00:00Z',
+      end: '2024-01-15T09:30:00Z',
+      available: true
     }
-  }
+  ],
+  busy: [
+    {
+      start: '2024-01-15T10:00:00Z',
+      end: '2024-01-15T11:00:00Z',
+      title: 'Team Meeting' // Only for viewer's own events
+    }
+  ],
+  lastUpdated: '2024-01-15T08:00:00Z'
 }
-```
 
-**Connections Collection (connections)**
-```javascript
+// Key: mutual:{hash(participants)}:{dateRange}:{duration}
+// TTL: 600 seconds (10 minutes)
 {
-  "id": "auto-generated-doc-id",
-  "requester_id": "firebase-user-id-1",
-  "target_id": "firebase-user-id-2",
-  "status": "pending", // pending, accepted, declined
-  "message": "Let's connect our calendars!",
-  "created_at": "2024-01-01T00:00:00Z",
-  "accepted_at": null
-}
-
-// Security rules
-match /connections/{connectionId} {
-  allow read, write: if request.auth != null && 
-    (request.auth.uid == resource.data.requester_id || 
-     request.auth.uid == resource.data.target_id);
+  mutualSlots: [
+    {
+      start: '2024-01-15T14:00:00Z',
+      end: '2024-01-15T15:00:00Z'
+    }
+  ],
+  participants: ['user1', 'user2'],
+  duration: 60
 }
 ```
 
-**Calendar Integrations Collection (calendar_integrations)**
-```javascript
-{
-  "id": "auto-generated-doc-id",
-  "user_id": "firebase-user-id",
-  "calcom_api_key": "encrypted-api-key",
-  "calcom_user_id": "calcom-user-identifier",
-  "is_active": true,
-  "last_sync": "2024-01-01T12:00:00Z",
-  "created_at": "2024-01-01T00:00:00Z"
+**TypeScript Type Definitions**
+```typescript
+interface UserProfile {
+  id: string;
+  email: string;
+  name: string;
+  username: string;
+  googleId: string;
+  avatar?: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-// Security rules
-match /calendar_integrations/{integrationId} {
-  allow read, write: if request.auth != null && 
-    request.auth.uid == resource.data.user_id;
-}
-```
-
-**Initial Data Setup**
-```python
-# Python script for initial Firestore setup
-import firebase_admin
-from firebase_admin import credentials, firestore
-
-# Initialize Firebase Admin SDK
-cred = credentials.Certificate('path/to/serviceAccountKey.json')
-firebase_admin.initialize_app(cred)
-db = firestore.client()
-
-# Create initial collections with sample data
-sample_user = {
-    'email': 'demo@example.com',
-    'display_name': 'Demo User',
-    'timezone': 'UTC',
-    'created_at': firestore.SERVER_TIMESTAMP,
-    'updated_at': firestore.SERVER_TIMESTAMP
+interface TimeSlot {
+  start: string; // ISO 8601
+  end: string; // ISO 8601
+  available?: boolean;
+  title?: string; // Only for viewer's events
 }
 
-db.collection('users').add(sample_user)
+interface AvailabilitySlot extends TimeSlot {
+  available: true;
+}
+
+interface BusySlot extends TimeSlot {
+  available: false;
+  title?: string;
+}
+
+interface DateRange {
+  from: string; // ISO 8601
+  to: string; // ISO 8601
+}
+
+type SuggestionType = 'first_30min' | 'first_1hour' | 'morning_coffee' | 'lunch' | 'dinner';
+
+interface Suggestion {
+  type: SuggestionType;
+  slot: TimeSlot;
+  confidence: number;
+}
+
+type BookingMethod = 'deeplink' | 'calcom';
+
+interface WorkingHours {
+  [day: string]: {
+    start: string; // HH:mm format
+    end: string; // HH:mm format
+    enabled: boolean;
+  };
+}
+
+interface LunchWindow {
+  start: string; // HH:mm format
+  end: string; // HH:mm format
+  enabled: boolean;
+}
 ```
