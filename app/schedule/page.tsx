@@ -189,8 +189,38 @@ export default function SchedulePage() {
       };
       setConnectedUser(mockConnectedUser);
       
+      // Auto-fill attendees with connected user's email
+      setMeetingDetails(prev => ({
+        ...prev,
+        attendees: mockConnectedUser.email,
+        title: prev.title || `Meeting with ${mockConnectedUser.name}`
+      }));
+      
       // Fetch mutual availability when connected
       fetchMutualAvailability();
+    }
+
+    // Auto-fill from URL parameters
+    const startTime = searchParams.get('start');
+    const endTime = searchParams.get('end');
+    const duration = searchParams.get('duration');
+    
+    if (startTime && endTime) {
+      const start = new Date(startTime);
+      const end = new Date(endTime);
+      const calculatedDuration = Math.round((end.getTime() - start.getTime()) / (1000 * 60));
+      
+      setMeetingDetails(prev => ({
+        ...prev,
+        duration: duration ? parseInt(duration) : calculatedDuration
+      }));
+      setDurationLocked(true);
+      
+      // Auto-select the time slot
+      const dayIndex = Math.floor((start.getTime() - new Date().setHours(0,0,0,0)) / (1000 * 60 * 60 * 24));
+      if (dayIndex >= 0 && dayIndex < 3) {
+        setSelectedTimeSlot({ day: dayIndex, hour: start.getHours() });
+      }
     }
 
     // Refresh calendar data periodically
@@ -320,11 +350,42 @@ export default function SchedulePage() {
       
       if (result.success) {
         const meetingTime = `${selectedTimeSlot.hour}:00`;
-        toast.success(`Meeting "${meetingDetails.title}" created and added to Google Calendar for ${selectedDay.dayName} at ${meetingTime}!`);
         
-        // If Google Meet link was created, show it to user
-        if (result.meeting?.meetingUrl) {
-          toast.success(`Google Meet link: ${result.meeting.meetingUrl}`);
+        // Show success message with appropriate details
+        if (result.meeting.calendarIntegration) {
+          toast.success(`Meeting "${meetingDetails.title}" booked for ${selectedDay.dayName} at ${meetingTime} and added to Google Calendar!`);
+          
+          // If Google Meet link was created, show it
+          if (result.meeting.meetingUrl) {
+            toast.success(`Google Meet link: ${result.meeting.meetingUrl}`, {
+              duration: 10000,
+            });
+          }
+        } else {
+          toast.success(`Meeting "${meetingDetails.title}" booked for ${selectedDay.dayName} at ${meetingTime}!`);
+          
+          // Show warning about calendar integration
+          if (result.warning) {
+            toast.warning(result.warning, {
+              duration: 8000,
+            });
+          }
+          
+          // Show manual calendar links
+          if (result.calendarLinks) {
+            toast.info('Add to calendar manually:', {
+              duration: 10000,
+              action: {
+                label: 'Google Calendar',
+                onClick: () => window.open(result.calendarLinks.google, '_blank'),
+              },
+            });
+          }
+        }
+        
+        // If deep link was generated, open it
+        if (result.deepLink) {
+          window.open(result.deepLink, '_blank');
         }
         
         // Reset form
@@ -339,7 +400,14 @@ export default function SchedulePage() {
         });
         setDurationLocked(false);
       } else {
-        throw new Error(result.message || 'Failed to book meeting');
+        // Handle specific error cases
+        if (result.error === 'Calendar conflict detected') {
+          toast.error('Time slot conflict detected. Please choose a different time.');
+        } else if (result.error === 'Authentication required') {
+          toast.error('Please sign in again to book meetings.');
+        } else {
+          toast.error(result.message || 'Failed to book meeting');
+        }
       }
       
     } catch (error) {
@@ -579,11 +647,35 @@ export default function SchedulePage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Attendees (emails)
                   </label>
-                  <Input
-                    value={meetingDetails.attendees}
-                    onChange={(e) => setMeetingDetails(prev => ({ ...prev, attendees: e.target.value }))}
-                    placeholder="email1@example.com, email2@example.com"
-                  />
+                  {connectedUser ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-md">
+                        <img
+                          src={connectedUser.avatar}
+                          alt={connectedUser.name}
+                          className="w-6 h-6 rounded-full"
+                        />
+                        <span className="text-green-800 font-medium">{connectedUser.name}</span>
+                        <span className="text-green-600 text-sm">({connectedUser.email})</span>
+                        <Badge variant="secondary" className="ml-auto">Auto-added</Badge>
+                      </div>
+                      <Input
+                        value={meetingDetails.attendees}
+                        onChange={(e) => setMeetingDetails(prev => ({ ...prev, attendees: e.target.value }))}
+                        placeholder="Add additional attendees (optional)"
+                        className="text-sm"
+                      />
+                      <p className="text-xs text-gray-500">
+                        {connectedUser.name}'s email is automatically included. Add more attendees above if needed.
+                      </p>
+                    </div>
+                  ) : (
+                    <Input
+                      value={meetingDetails.attendees}
+                      onChange={(e) => setMeetingDetails(prev => ({ ...prev, attendees: e.target.value }))}
+                      placeholder="email1@example.com, email2@example.com"
+                    />
+                  )}
                 </div>
               </div>
               

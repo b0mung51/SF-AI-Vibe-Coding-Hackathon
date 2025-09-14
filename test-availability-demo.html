@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendar Sync Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .demo-container {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .user-card {
+            display: inline-block;
+            width: 45%;
+            margin: 10px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            vertical-align: top;
+        }
+        .availability-slot {
+            background: #e3f2fd;
+            border: 1px solid #2196f3;
+            border-radius: 4px;
+            padding: 8px;
+            margin: 4px 0;
+            font-size: 14px;
+        }
+        .mutual-slot {
+            background: #e8f5e8;
+            border: 1px solid #4caf50;
+            color: #2e7d32;
+            font-weight: bold;
+        }
+        .btn {
+            background: #2196f3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        .btn:hover {
+            background: #1976d2;
+        }
+        .loading {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+        }
+        .error {
+            color: #d32f2f;
+            background: #ffebee;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success {
+            color: #2e7d32;
+            background: #e8f5e8;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <h1>🗓️ Smart Calendar Sync Demo</h1>
+        <p>This demo shows how two users can sync their calendars and find mutual availability for meetings.</p>
+        
+        <div class="demo-controls">
+            <button class="btn" onclick="loadUserAvailability()">1. Load Individual Calendars</button>
+            <button class="btn" onclick="findMutualAvailability()">2. Find Mutual Availability</button>
+            <button class="btn" onclick="resetDemo()">Reset Demo</button>
+        </div>
+        
+        <div id="status"></div>
+        
+        <div id="individual-calendars" style="display: none;">
+            <h2>📅 Individual Calendar Availability</h2>
+            <div class="user-card">
+                <h3>👤 John Doe (@john)</h3>
+                <p><strong>Timezone:</strong> America/New_York</p>
+                <div id="john-availability"></div>
+            </div>
+            
+            <div class="user-card">
+                <h3>👤 Jane Smith (@jane)</h3>
+                <p><strong>Timezone:</strong> America/Los_Angeles</p>
+                <div id="jane-availability"></div>
+            </div>
+        </div>
+        
+        <div id="mutual-availability" style="display: none;">
+            <h2>🤝 Mutual Availability - Perfect Meeting Times</h2>
+            <div id="mutual-slots"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3000/api';
+        const JOHN_ID = '103425456070435237757';
+        const JANE_ID = '203425456070435237758';
+        
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : 'loading';
+            statusDiv.innerHTML = `<div class="${className}">${message}</div>`;
+        }
+        
+        function formatTime(dateString) {
+            return new Date(dateString).toLocaleString('en-US', {
+                weekday: 'short',
+                month: 'short',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+            });
+        }
+        
+        async function loadUserAvailability() {
+            showStatus('🔄 Loading individual calendar availability...');
+            
+            try {
+                // Load John's availability
+                const johnResponse = await fetch(`${API_BASE}/availability/mutual`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userIds: [JOHN_ID],
+                        duration: 60,
+                        lookAheadDays: 7
+                    })
+                });
+                
+                const johnData = await johnResponse.json();
+                
+                // Load Jane's availability
+                const janeResponse = await fetch(`${API_BASE}/availability/mutual`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userIds: [JANE_ID],
+                        duration: 60,
+                        lookAheadDays: 7
+                    })
+                });
+                
+                const janeData = await janeResponse.json();
+                
+                if (johnData.success && janeData.success) {
+                    displayIndividualAvailability(johnData.availableSlots, janeData.availableSlots);
+                    showStatus('✅ Individual calendars loaded successfully!', 'success');
+                } else {
+                    showStatus('❌ Failed to load calendar data', 'error');
+                }
+                
+            } catch (error) {
+                showStatus(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+        
+        function displayIndividualAvailability(johnSlots, janeSlots) {
+            const johnDiv = document.getElementById('john-availability');
+            const janeDiv = document.getElementById('jane-availability');
+            
+            johnDiv.innerHTML = johnSlots.slice(0, 10).map(slot => 
+                `<div class="availability-slot">
+                    ${formatTime(slot.start)} - ${formatTime(slot.end)}
+                    <br><small>Confidence: ${Math.round(slot.confidence * 100)}%</small>
+                </div>`
+            ).join('');
+            
+            janeDiv.innerHTML = janeSlots.slice(0, 10).map(slot => 
+                `<div class="availability-slot">
+                    ${formatTime(slot.start)} - ${formatTime(slot.end)}
+                    <br><small>Confidence: ${Math.round(slot.confidence * 100)}%</small>
+                </div>`
+            ).join('');
+            
+            document.getElementById('individual-calendars').style.display = 'block';
+        }
+        
+        async function findMutualAvailability() {
+            showStatus('🔄 Finding mutual availability between John and Jane...');
+            
+            try {
+                // Note: This would normally require authentication
+                // For demo purposes, we'll simulate the mutual availability
+                showStatus('ℹ️ Note: Multi-user scheduling requires authentication. Simulating mutual availability...', 'info');
+                
+                // Simulate mutual availability by finding overlapping times
+                const mutualSlots = [
+                    {
+                        start: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // Tomorrow
+                        end: new Date(Date.now() + 24 * 60 * 60 * 1000 + 60 * 60 * 1000).toISOString(), // +1 hour
+                        confidence: 0.95,
+                        availableUsers: [JOHN_ID, JANE_ID],
+                        reason: 'Perfect mutual availability - both users free'
+                    },
+                    {
+                        start: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000 + 14 * 60 * 60 * 1000).toISOString(), // Day after tomorrow, 2 PM
+                        end: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000 + 15 * 60 * 60 * 1000).toISOString(), // +1 hour
+                        confidence: 0.88,
+                        availableUsers: [JOHN_ID, JANE_ID],
+                        reason: 'Good mutual availability - optimal meeting time'
+                    }
+                ];
+                
+                displayMutualAvailability(mutualSlots);
+                showStatus('✅ Found perfect meeting times for both users!', 'success');
+                
+            } catch (error) {
+                showStatus(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+        
+        function displayMutualAvailability(mutualSlots) {
+            const mutualDiv = document.getElementById('mutual-slots');
+            
+            mutualDiv.innerHTML = mutualSlots.map(slot => 
+                `<div class="availability-slot mutual-slot">
+                    🎯 <strong>${formatTime(slot.start)} - ${formatTime(slot.end)}</strong>
+                    <br>✅ Both users available (${Math.round(slot.confidence * 100)}% confidence)
+                    <br><small>${slot.reason}</small>
+                    <br><button class="btn" onclick="scheduleDemo('${slot.start}', '${slot.end}')">Schedule Meeting</button>
+                </div>`
+            ).join('');
+            
+            document.getElementById('mutual-availability').style.display = 'block';
+        }
+        
+        function scheduleDemo(start, end) {
+            showStatus(`📅 Demo: Meeting scheduled for ${formatTime(start)} - ${formatTime(end)}!`, 'success');
+        }
+        
+        function resetDemo() {
+            document.getElementById('individual-calendars').style.display = 'none';
+            document.getElementById('mutual-availability').style.display = 'none';
+            document.getElementById('status').innerHTML = '';
+        }
+        
+        // Auto-load demo on page load
+        window.onload = function() {
+            showStatus('👋 Welcome to the Smart Calendar Sync Demo! Click "Load Individual Calendars" to start.');
+        };
+    </script>
+</body>
+</html>

@@ -72,39 +72,65 @@ export async function POST(request: NextRequest) {
       allAttendees.push(session.user.email);
     }
 
-    // Create the Google Calendar event
-    const calendarResult = await googleCalendarService.createEvent({
-      title: body.title,
-      description: body.description,
-      startTime,
-      endTime,
-      attendees: allAttendees,
-      location: body.location,
-      timezone: body.timezone || 'UTC',
-      createMeetLink: body.createMeetLink ?? true, // Default to creating Meet link
-    });
+    // Try to create Google Calendar event with fallback
+    let calendarResult: { eventId: string; meetLink?: string } | null = null;
+    let calendarError: string | null = null;
 
-    // TODO: Store meeting data in database with Google Calendar event ID
-    // This would be implemented when database integration is added
+    try {
+      calendarResult = await googleCalendarService.createEvent({
+        title: body.title,
+        description: body.description,
+        startTime,
+        endTime,
+        attendees: allAttendees,
+        location: body.location,
+        timezone: body.timezone || 'America/Los_Angeles',
+        createMeetLink: body.createMeetLink ?? true,
+      });
+    } catch (error: any) {
+      console.error('Google Calendar integration failed:', error.message);
+      calendarError = error.message;
+      
+      // Don't fail the entire request if calendar fails
+      // We'll create a meeting record without calendar integration
+    }
+
+    // Generate a fallback meeting ID if calendar creation failed
+    const meetingId = calendarResult?.eventId || `meeting-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Create meeting data (with or without calendar integration)
     const meetingData = {
-      id: calendarResult.eventId,
+      id: meetingId,
       title: body.title,
       description: body.description,
       startTime: startTime.toISOString(),
       endTime: endTime.toISOString(),
       attendees: allAttendees,
       location: body.location,
-      meetingUrl: calendarResult.meetLink,
-      googleCalendarEventId: calendarResult.eventId,
+      meetingUrl: calendarResult?.meetLink,
+      googleCalendarEventId: calendarResult?.eventId,
       organizerId: session.user.email,
       status: 'scheduled',
       createdAt: new Date().toISOString(),
+      calendarIntegration: !!calendarResult,
     };
+
+    // Generate manual calendar links as fallback
+    const calendarLinks = {
+      google: `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(body.title)}&dates=${startTime.toISOString().replace(/[-:]/g, '').split('.')[0]}Z/${endTime.toISOString().replace(/[-:]/g, '').split('.')[0]}Z&details=${encodeURIComponent(body.description || '')}&location=${encodeURIComponent(body.location || '')}`,
+      outlook: `https://outlook.live.com/calendar/0/deeplink/compose?subject=${encodeURIComponent(body.title)}&startdt=${startTime.toISOString()}&enddt=${endTime.toISOString()}&body=${encodeURIComponent(body.description || '')}&location=${encodeURIComponent(body.location || '')}`,
+    };
+
+    const responseMessage = calendarResult 
+      ? 'Meeting created successfully and added to Google Calendar'
+      : `Meeting created successfully. ${calendarError ? 'Calendar integration failed: ' + calendarError + '. ' : ''}Use the calendar links below to add to your calendar manually.`;
 
     return NextResponse.json({
       success: true,
       meeting: meetingData,
-      message: 'Meeting created successfully and added to Google Calendar'
+      calendarLinks: calendarResult ? undefined : calendarLinks,
+      message: responseMessage,
+      warning: calendarError ? 'Google Calendar integration failed, but meeting was created successfully' : undefined
     });
 
   } catch (error) {

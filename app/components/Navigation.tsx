@@ -1,3 +1,5 @@
+'use client';
+
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -8,7 +10,7 @@ export default function Navigation() {
     { href: "/", label: "Home" },
     { href: "/connect", label: "Connect" },
     { href: "/calendar", label: "Calendar" },
-    { href: "/meetings", label: "Meetings" },
+    { href: "/schedule", label: "Schedule" },
     { href: "/profile", label: "Profile" },
   ];
 

@@ -46,18 +46,31 @@ class GoogleCalendarService {
     const session = await getServerSession(authOptions);
     
     if (!session?.accessToken) {
-      throw new Error('No valid session or access token found');
+      throw new Error('No valid session or access token found. Please sign in again.');
     }
 
     const oauth2Client = new google.auth.OAuth2(
-      process.env.GOOGLE_CLIENT_ID,
-      process.env.GOOGLE_CLIENT_SECRET,
+      process.env.AUTH_GOOGLE_ID,
+      process.env.AUTH_GOOGLE_SECRET,
       process.env.NEXTAUTH_URL + '/api/auth/callback/google'
     );
 
+    // Set credentials with proper token structure
     oauth2Client.setCredentials({
       access_token: session.accessToken as string,
       refresh_token: session.refreshToken as string,
+      expiry_date: session.expiresAt ? session.expiresAt * 1000 : undefined,
+    });
+
+    // Handle token refresh automatically
+    oauth2Client.on('tokens', (tokens) => {
+      if (tokens.refresh_token) {
+        // Store the new refresh token if provided
+        console.log('New refresh token received');
+      }
+      if (tokens.access_token) {
+        console.log('Access token refreshed');
+      }
     });
 
     return google.calendar({ version: 'v3', auth: oauth2Client });
@@ -69,11 +82,20 @@ class GoogleCalendarService {
   async createEvent(params: CreateEventParams): Promise<{ eventId: string; meetLink?: string }> {
     try {
       const calendar = await this.getCalendarClient();
-      const timezone = params.timezone || 'UTC';
+      const timezone = params.timezone || 'America/Los_Angeles'; // Use a valid timezone
 
-      const event: CalendarEvent = {
+      // Validate input parameters
+      if (!params.title || !params.startTime || !params.endTime) {
+        throw new Error('Missing required parameters: title, startTime, endTime');
+      }
+
+      if (params.startTime >= params.endTime) {
+        throw new Error('End time must be after start time');
+      }
+
+      // Create event object with proper structure
+      const event: any = {
         summary: params.title,
-        description: params.description,
         start: {
           dateTime: params.startTime.toISOString(),
           timeZone: timezone,
@@ -82,22 +104,36 @@ class GoogleCalendarService {
           dateTime: params.endTime.toISOString(),
           timeZone: timezone,
         },
-        location: params.location,
       };
 
-      // Add attendees if provided
+      // Add optional fields only if they exist
+      if (params.description) {
+        event.description = params.description;
+      }
+
+      if (params.location) {
+        event.location = params.location;
+      }
+
+      // Add attendees if provided (filter out invalid emails)
       if (params.attendees && params.attendees.length > 0) {
-        event.attendees = params.attendees.map(email => ({
-          email,
-          responseStatus: 'needsAction',
-        }));
+        const validAttendees = params.attendees
+          .filter(email => email && email.includes('@'))
+          .map(email => ({
+            email: email.trim(),
+            responseStatus: 'needsAction',
+          }));
+        
+        if (validAttendees.length > 0) {
+          event.attendees = validAttendees;
+        }
       }
 
       // Add Google Meet link if requested
       if (params.createMeetLink) {
         event.conferenceData = {
           createRequest: {
-            requestId: `meet-${Date.now()}`,
+            requestId: `meet-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             conferenceSolutionKey: {
               type: 'hangoutsMeet',
             },
@@ -105,27 +141,48 @@ class GoogleCalendarService {
         };
       }
 
+      console.log('Creating calendar event with data:', JSON.stringify(event, null, 2));
+
       const response = await calendar.events.insert({
         calendarId: 'primary',
         resource: event,
         conferenceDataVersion: params.createMeetLink ? 1 : 0,
-        sendUpdates: 'all', // Send invitations to all attendees
+        sendUpdates: 'all',
       });
 
-      const eventId = (response as any).data?.id;
-      const meetLink = (response as any).data?.conferenceData?.entryPoints?.[0]?.uri;
+      const eventData = response.data;
+      const eventId = eventData?.id;
+      const meetLink = eventData?.conferenceData?.entryPoints?.[0]?.uri;
 
       if (!eventId) {
+        console.error('No event ID in response:', eventData);
         throw new Error('Failed to create calendar event - no event ID returned');
       }
+
+      console.log('Calendar event created successfully:', { eventId, meetLink });
 
       return {
         eventId,
         meetLink,
       };
-    } catch (error) {
-      console.error('Error creating Google Calendar event:', error);
-      throw new Error(`Failed to create calendar event: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } catch (error: any) {
+      console.error('Error creating Google Calendar event:', {
+        error: error.message,
+        code: error.code,
+        status: error.status,
+        details: error.response?.data,
+      });
+      
+      // Provide more specific error messages
+      if (error.code === 401) {
+        throw new Error('Authentication failed. Please sign in again.');
+      } else if (error.code === 403) {
+        throw new Error('Calendar access denied. Please grant calendar permissions.');
+      } else if (error.code === 400) {
+        throw new Error(`Invalid request: ${error.message || 'Please check your input data'}`);
+      } else {
+        throw new Error(`Failed to create calendar event: ${error.message || 'Unknown error'}`);
+      }
     }
   }
 

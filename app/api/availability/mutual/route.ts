@@ -46,16 +46,20 @@ export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     
-    if (!session?.user?.email) {
+    // Allow unauthenticated access for viewing public profiles
+    // Authentication is only required for multi-user scheduling
+    const body: MutualAvailabilityRequest = await request.json();
+    const { userIds } = body;
+    
+    // Require authentication for multi-user availability (2+ users)
+    if (userIds && userIds.length > 1 && !session?.user?.email) {
       return NextResponse.json(
-        { success: false, message: 'Unauthorized' },
+        { success: false, message: 'Authentication required for multi-user scheduling' },
         { status: 401 }
       );
     }
 
-    const body: MutualAvailabilityRequest = await request.json();
     const { 
-      userIds, 
       duration, 
       preferredTimeRange = { start: '09:00', end: '17:00' },
       excludeDays = [],
@@ -64,9 +68,9 @@ export async function POST(request: NextRequest) {
     } = body;
 
     // Validate required fields
-    if (!userIds || userIds.length < 2) {
+    if (!userIds || userIds.length < 1) {
       return NextResponse.json(
-        { success: false, message: 'At least 2 user IDs are required' },
+        { success: false, message: 'At least 1 user ID is required' },
         { status: 400 }
       );
     }
@@ -89,14 +93,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Find mutual availability
+    // Find mutual availability (works for single users too)
     const availabilityRequest = {
       userIds,
       duration,
       preferredTimeRange,
       excludeDays,
       lookAheadDays,
-      requireAllUsers
+      requireAllUsers: userIds.length === 1 ? true : requireAllUsers // For single user, always require the user
     };
 
     const availabilityResult = await multiUserAvailabilityEngine.findMutualAvailability(

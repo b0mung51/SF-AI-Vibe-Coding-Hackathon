@@ -3,8 +3,10 @@
 import React, { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Calendar, Clock, Users, Settings, Plus, Share2, Copy, ExternalLink } from 'lucide-react';
-import { Button, Card, CardContent, CardHeader, CardTitle, QRCodeGenerator, MultiUserScheduler } from '@/src/components/ui';
+import { Calendar, Clock, Users, Settings, Plus } from 'lucide-react';
+import { Button, Card, CardContent, CardHeader, CardTitle, MultiUserScheduler } from '@/src/components/ui';
+import { ProfileShare } from '@/src/components/ui/ProfileShare';
+import { UserSearch } from '@/src/components/ui/UserSearch';
 import { Layout } from '@/src/components/layout/Layout';
 import { useOnboardingStore } from '@/src/store';
 
@@ -12,24 +14,7 @@ export default function DashboardPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const { isCompleted } = useOnboardingStore();
-  const [copied, setCopied] = useState(false);
-  const [showQR, setShowQR] = useState(false);
   const [showMultiUserScheduler, setShowMultiUserScheduler] = useState(false);
-
-  // Generate shareable URL based on user email or ID
-  const shareableUrl = session?.user?.email 
-    ? `${window.location.origin}/profile/${encodeURIComponent(session.user.email.split('@')[0])}`
-    : '';
-
-  const handleCopyUrl = async () => {
-    try {
-      await navigator.clipboard.writeText(shareableUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (error) {
-      console.error('Failed to copy URL:', error);
-    }
-  };
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -126,67 +111,10 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        {/* Share Profile Section */}
-        <div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Share Your Profile</h2>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Shareable Link Card */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Share2 className="h-5 w-5" />
-                  Shareable Link
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-sm text-gray-600">
-                  Share this link with others so they can easily schedule meetings with you.
-                </p>
-                <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
-                  <code className="flex-1 text-sm text-gray-800 break-all">
-                    {shareableUrl}
-                  </code>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleCopyUrl}
-                    className="flex items-center gap-1 shrink-0"
-                  >
-                    <Copy className="h-4 w-4" />
-                    {copied ? 'Copied!' : 'Copy'}
-                  </Button>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowQR(!showQR)}
-                    className="flex items-center gap-2"
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                    {showQR ? 'Hide QR Code' : 'Show QR Code'}
-                  </Button>
-                  <Button
-                    onClick={() => window.open(shareableUrl, '_blank')}
-                    className="flex items-center gap-2"
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                    Preview Profile
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* QR Code Card */}
-            {showQR && (
-              <div className="flex justify-center lg:justify-start">
-                <QRCodeGenerator
-                  value={shareableUrl}
-                  title="Profile QR Code"
-                  size={180}
-                />
-              </div>
-            )}
-          </div>
+        {/* Profile Sharing and User Discovery */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <ProfileShare />
+          <UserSearch />
         </div>
 
         {/* Quick Actions */}
