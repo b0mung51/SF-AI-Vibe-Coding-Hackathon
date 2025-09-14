@@ -447,6 +447,10 @@ export default function CalendarsPage() {
                   <h4 className="text-sm font-medium text-gray-700 mb-2">Google Calendar</h4>
                   <button
                     onClick={async () => {
+                      if (!currentManagedUserId || !currentAccessToken) {
+                        alert('Calendar setup incomplete. Please try adding calendar again.');
+                        return;
+                      }
                       try {
                         const oauthUrl = await getCalendarOAuthUrl('google', currentManagedUserId, currentAccessToken);
                         window.location.href = oauthUrl;
@@ -471,6 +475,10 @@ export default function CalendarsPage() {
                   <h4 className="text-sm font-medium text-gray-700 mb-2">Outlook Calendar</h4>
                   <button
                     onClick={async () => {
+                      if (!currentManagedUserId || !currentAccessToken) {
+                        alert('Calendar setup incomplete. Please try adding calendar again.');
+                        return;
+                      }
                       try {
                         const oauthUrl = await getCalendarOAuthUrl('outlook', currentManagedUserId, currentAccessToken);
                         window.location.href = oauthUrl;
@@ -507,7 +515,7 @@ export default function CalendarsPage() {
 
                 <div className="mt-4 p-3 bg-blue-50 rounded-lg">
                   <p className="text-sm text-blue-800">
-                    <strong>Note:</strong> Clicking these buttons will redirect you to Google or Microsoft to grant calendar permissions. After granting permission, you'll be redirected back and your calendar will be connected.
+                    <strong>Note:</strong> Clicking these buttons will redirect you to Google or Microsoft to grant calendar permissions. After granting permission, you&apos;ll be redirected back and your calendar will be connected.
                   </p>
                 </div>
               </div>

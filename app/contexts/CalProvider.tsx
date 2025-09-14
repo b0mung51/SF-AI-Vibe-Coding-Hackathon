@@ -21,10 +21,10 @@ export default function CalProviderWrapper({ children }: { children: React.React
   return (
     <CalProvider
       accessToken={accessToken}
-      clientId={process.env.CAL_OAUTH_CLIENT_ID}
+      clientId={process.env.CAL_OAUTH_CLIENT_ID || ''}
       options={{
-        apiUrl: process.env.CAL_API_URL,
-        refreshUrl: process.env.REFRESH_URL
+        apiUrl: process.env.CAL_API_URL || 'https://api.cal.com/v2',
+        refreshUrl: process.env.REFRESH_URL || '/api/cal/refresh'
       }}
     >
       {children}
