@@ -82,7 +82,7 @@ export default function CalendarsPage() {
       alert('Cal.com calendar successfully connected!');
     } catch (error) {
       console.error('Error creating Cal.com managed user:', error);
-      alert('Cal.com integration error: ' + error.message);
+      alert('Cal.com integration error: ' + (error as Error).message);
     } finally {
       setIsAddingCalendar(false);
     }

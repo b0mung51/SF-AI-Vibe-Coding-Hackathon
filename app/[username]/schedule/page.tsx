@@ -415,7 +415,7 @@ export default function SchedulePage() {
               className="w-12 h-12 rounded-full"
             />
           ) : (
-            <div className="w-12 h-12 rounded-full gradient-icon flex items-center justify-center text-white font-semibold"
+            <div className="w-12 h-12 rounded-full gradient-icon flex items-center justify-center text-white font-semibold">
               {targetUser.displayName?.[0] || 'U'}
             </div>
           )}

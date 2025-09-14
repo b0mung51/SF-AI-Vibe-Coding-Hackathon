@@ -17,6 +17,7 @@ export interface User {
     personal?: string;
   };
   timezone: string;
+  calcomIntegrationId?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -24,7 +25,7 @@ export interface User {
 export interface Calendar {
   id: string;
   userId: string;
-  provider: 'google' | 'outlook' | 'icloud' | 'other';
+  provider: 'google' | 'outlook' | 'icloud' | 'calcom' | 'other';
   email: string;
   category: 'work' | 'personal';
   isDefault: boolean;

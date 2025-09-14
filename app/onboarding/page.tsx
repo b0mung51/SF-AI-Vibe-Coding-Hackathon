@@ -34,7 +34,7 @@ export default function OnboardingPage() {
       router.push('/home');
     } catch (error) {
       console.error('Calendar connection error:', error);
-      alert('Cal.com integration error: ' + error.message);
+      alert('Cal.com integration error: ' + (error as Error).message);
       setConnecting(false);
     }
   };
