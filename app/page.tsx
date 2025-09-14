@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { signInWithGoogle } from '@/app/lib/firebase';
@@ -8,9 +8,11 @@ import { signInWithGoogle } from '@/app/lib/firebase';
 export default function Home() {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const isSigningIn = useRef(false);
 
   useEffect(() => {
-    if (!loading && user) {
+    if (!loading && user && !isSigningIn.current) {
+      // Only redirect if we're not in the middle of a sign-in process
       console.log('User detected on page load, redirecting to home');
       router.replace('/home');
     }
@@ -18,9 +20,13 @@ export default function Home() {
 
   const handleSignIn = async () => {
     try {
+      isSigningIn.current = true;
       console.log('Starting sign in...');
+
       const result = await signInWithGoogle();
       console.log('Sign in result:', result);
+
+      // Redirect immediately based on user type
       if (result.isNewUser) {
         console.log('New user, redirecting to onboarding');
         router.replace('/onboarding');
@@ -30,6 +36,7 @@ export default function Home() {
       }
     } catch (error) {
       console.error('Sign in error:', error);
+      isSigningIn.current = false;
     }
   };
 

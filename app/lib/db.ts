@@ -5,6 +5,7 @@ import {
   getDoc,
   setDoc,
   updateDoc,
+  deleteDoc,
   query,
   where,
   getDocs,
@@ -61,6 +62,11 @@ export const updateCalendar = async (calendarId: string, updates: Partial<Calend
     ...updates,
     updatedAt: serverTimestamp(),
   });
+};
+
+export const deleteCalendar = async (calendarId: string) => {
+  const calendarRef = doc(db, 'calendars', calendarId);
+  await deleteDoc(calendarRef);
 };
 
 export const getConnection = async (user1Id: string, user2Id: string): Promise<Connection | null> => {
@@ -137,8 +143,8 @@ export const getDefaultSchedulableHours = (category: 'work' | 'personal') => {
       wednesday: [{ start: '08:00', end: '09:00' }, { start: '17:00', end: '22:00' }],
       thursday: [{ start: '08:00', end: '09:00' }, { start: '17:00', end: '22:00' }],
       friday: [{ start: '08:00', end: '09:00' }, { start: '17:00', end: '22:00' }],
-      saturday: [{ start: '08:00', end: '24:00' }],
-      sunday: [{ start: '08:00', end: '24:00' }],
+      saturday: [{ start: '08:00', end: '12:00' }],
+      sunday: [{ start: '08:00', end: '12:00' }],
     };
   }
 };

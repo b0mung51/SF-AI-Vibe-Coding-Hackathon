@@ -114,12 +114,21 @@ export default function UserProfilePage() {
                 src={profileUser.photoURL}
                 alt={profileUser.displayName}
                 className="w-24 h-24 rounded-full mb-4"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                  if (target.nextElementSibling) {
+                    (target.nextElementSibling as HTMLElement).style.display = 'flex';
+                  }
+                }}
               />
-            ) : (
-              <div className="w-24 h-24 rounded-full gradient-icon flex items-center justify-center text-white text-2xl font-semibold mb-4">
-                {profileUser.displayName?.[0] || 'U'}
-              </div>
-            )}
+            ) : null}
+            <div
+              className="w-24 h-24 rounded-full gradient-icon flex items-center justify-center text-white text-2xl font-semibold mb-4"
+              style={{ display: profileUser.photoURL ? 'none' : 'flex' }}
+            >
+              {profileUser.displayName?.[0] || 'U'}
+            </div>
 
             <h1 className="text-2xl font-bold text-gray-900">{profileUser.displayName}</h1>
             <p className="text-gray-600">@{profileUser.username}</p>

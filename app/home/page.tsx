@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/contexts/AuthContext';
-import { logOut } from '@/app/lib/firebase';
+import { logOut, deleteAccount } from '@/app/lib/firebase';
 import { updateUserProfile } from '@/app/lib/db';
 import Link from 'next/link';
 
@@ -15,6 +15,7 @@ export default function HomePage() {
   const [location, setLocation] = useState('');
   const [isRequestingLocation, setIsRequestingLocation] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -99,6 +100,31 @@ export default function HomePage() {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    const confirmDelete = window.confirm(
+      'Are you sure you want to delete your account?\n\nThis action cannot be undone and will permanently delete all your data.\n\nYou will need to re-authenticate with Google to confirm this action.'
+    );
+
+    if (confirmDelete) {
+      setIsDeleting(true);
+      try {
+        await deleteAccount();
+        router.push('/');
+      } catch (error: any) {
+        console.error('Delete account error:', error);
+        let errorMessage = 'Failed to delete account. Please try again.';
+
+        if (error.message) {
+          errorMessage = error.message;
+        }
+
+        alert(errorMessage);
+      } finally {
+        setIsDeleting(false);
+      }
+    }
+  };
+
   if (loading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -131,12 +157,21 @@ export default function HomePage() {
                 src={user.photoURL}
                 alt={user.displayName}
                 className="w-16 h-16 rounded-full"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                  if (target.nextElementSibling) {
+                    (target.nextElementSibling as HTMLElement).style.display = 'flex';
+                  }
+                }}
               />
-            ) : (
-              <div className="w-16 h-16 rounded-full gradient-icon flex items-center justify-center text-white text-xl font-semibold">
-                {user.displayName?.[0] || 'U'}
-              </div>
-            )}
+            ) : null}
+            <div
+              className="w-16 h-16 rounded-full gradient-icon flex items-center justify-center text-white text-xl font-semibold"
+              style={{ display: user.photoURL ? 'none' : 'flex' }}
+            >
+              {user.displayName?.[0] || 'U'}
+            </div>
 
             <div className="flex-1">
               <h2 className="text-xl font-semibold text-gray-900">{user.displayName}</h2>
@@ -240,6 +275,40 @@ export default function HomePage() {
               </svg>
             </div>
           </Link>
+
+          <button
+            onClick={handleDeleteAccount}
+            disabled={isDeleting}
+            className="block w-full bg-white rounded-xl shadow-sm p-4 hover:shadow-md transition-shadow border border-red-200 hover:border-red-300 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-red-500 rounded-lg flex items-center justify-center">
+                  {isDeleting ? (
+                    <svg className="w-6 h-6 text-white animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  ) : (
+                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  )}
+                </div>
+                <div>
+                  <p className="font-medium text-red-600">{isDeleting ? 'Deleting account...' : 'Delete account'}</p>
+                  <p className="text-sm text-red-500">
+                    {isDeleting ? 'Please wait, processing...' : 'Permanently delete all your data'}
+                  </p>
+                </div>
+              </div>
+              {!isDeleting && (
+                <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              )}
+            </div>
+          </button>
         </div>
       </div>
     </div>

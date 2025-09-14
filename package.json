@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@calcom/atoms": "^1.8.0-booker",
     "@firebase/auth": "^1.11.0",
     "@firebase/firestore": "^4.9.1",
     "@firebase/storage": "^0.14.0",

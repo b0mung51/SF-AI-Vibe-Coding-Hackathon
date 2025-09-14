@@ -413,12 +413,21 @@ export default function SchedulePage() {
               src={targetUser.photoURL}
               alt={targetUser.displayName}
               className="w-12 h-12 rounded-full"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+                if (target.nextElementSibling) {
+                  (target.nextElementSibling as HTMLElement).style.display = 'flex';
+                }
+              }}
             />
-          ) : (
-            <div className="w-12 h-12 rounded-full gradient-icon flex items-center justify-center text-white font-semibold">
-              {targetUser.displayName?.[0] || 'U'}
-            </div>
-          )}
+          ) : null}
+          <div
+            className="w-12 h-12 rounded-full gradient-icon flex items-center justify-center text-white font-semibold"
+            style={{ display: targetUser.photoURL ? 'none' : 'flex' }}
+          >
+            {targetUser.displayName?.[0] || 'U'}
+          </div>
           <div>
             <p className="font-semibold text-gray-900">{targetUser.displayName}</p>
             <p className="text-sm text-gray-500">@{targetUser.username}</p>

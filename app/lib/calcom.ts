@@ -35,14 +35,13 @@ export async function createCalcomManagedUser(userEmail: string, userName: strin
   });
 
   const data = await response.json();
-  console.log('Cal.com API response:', data);
 
   // Handle user already exists (409 Conflict)
   if (response.status === 409 && data.error?.message?.includes('User with the provided e-mail already exists')) {
     const existingUserIdMatch = data.error.message.match(/Existing user ID=(\d+)/);
     if (existingUserIdMatch) {
       const existingUserId = existingUserIdMatch[1];
-      console.log('Using existing Cal.com user ID:', existingUserId);
+      console.log('Cal.com user already exists, using existing user ID:', existingUserId);
 
       // For existing users, we need to generate access tokens
       // This is a simplified approach - in production you might need to implement proper token management
@@ -145,4 +144,34 @@ export async function createCalcomBooking(
   }
 
   return await response.json();
+}
+
+export async function getCalendarOAuthUrl(provider: 'google' | 'outlook', managedUserId: string): Promise<string> {
+  const JWT_TOKEN = process.env.NEXT_PUBLIC_CALCOM_JWT_TOKEN;
+
+  if (!JWT_TOKEN) {
+    throw new Error('Cal.com JWT token not configured');
+  }
+
+  const response = await fetch('https://api.cal.com/v2/calendars/get-oauth-connect-url', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-cal-secret-key': JWT_TOKEN,
+    },
+    body: JSON.stringify({
+      provider,
+      userId: managedUserId,
+      redirectUrl: `${window.location.origin}/api/cal/callback/${provider}`,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    console.error('Failed to get OAuth URL:', error);
+    throw new Error(`Failed to get ${provider} OAuth URL: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.url || data.authUrl || data.data?.url;
 }
