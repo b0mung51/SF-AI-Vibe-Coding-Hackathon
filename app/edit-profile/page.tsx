@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { getUserCalendars, addCalendar, updateCalendar, deleteCalendar, getDefaultSchedulableHours } from '@/app/lib/db';
-import { createCalcomManagedUser } from '@/app/lib/calcom';
+import { createCalcomManagedUser, getCalendarOAuthUrl } from '@/app/lib/calcom';
 import type { Calendar, SchedulableHours } from '@/app/types';
 
 const TIME_OPTIONS = Array.from({ length: 96 }, (_, i) => {
@@ -23,6 +23,7 @@ export default function CalendarsPage() {
   const [saving, setSaving] = useState(false);
   const [showCalendarConnect, setShowCalendarConnect] = useState(false);
   const [currentManagedUserId, setCurrentManagedUserId] = useState<string | null>(null);
+  const [currentAccessToken, setCurrentAccessToken] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -78,6 +79,7 @@ export default function CalendarsPage() {
 
       // Show calendar connection interface
       setCurrentManagedUserId(calcomUser.managedUserId);
+      setCurrentAccessToken(calcomUser.accessToken);
       setShowCalendarConnect(true);
     } catch (error) {
       console.error('Error creating Cal.com managed user:', error);
@@ -246,10 +248,14 @@ export default function CalendarsPage() {
                   </div>
                   <div className="text-left">
                     <p className="font-medium text-gray-900">{calendar.email}</p>
-                    <p className="text-sm text-gray-500">
-                      {calendar.category === 'work' ? 'Work' : 'Personal'}
-                      {calendar.isDefault && ' • Default'}
-                    </p>
+                    <a
+                      href={`https://app.cal.com/event-types`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                    >
+                      See Cal →
+                    </a>
                   </div>
                 </div>
                 <svg
@@ -440,10 +446,14 @@ export default function CalendarsPage() {
                 <div>
                   <h4 className="text-sm font-medium text-gray-700 mb-2">Google Calendar</h4>
                   <button
-                    onClick={() => {
-                      // Redirect to Cal.com Google Calendar connection
-                      const calcomUrl = `https://app.cal.com/apps/google-calendar?user=${currentManagedUserId}`;
-                      window.open(calcomUrl, '_blank');
+                    onClick={async () => {
+                      try {
+                        const oauthUrl = await getCalendarOAuthUrl('google', currentManagedUserId, currentAccessToken);
+                        window.location.href = oauthUrl;
+                      } catch (error) {
+                        console.error('Error getting Google OAuth URL:', error);
+                        alert('Failed to connect Google Calendar. Please try again.');
+                      }
                     }}
                     className="w-full py-3 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
                   >
@@ -460,10 +470,14 @@ export default function CalendarsPage() {
                 <div>
                   <h4 className="text-sm font-medium text-gray-700 mb-2">Outlook Calendar</h4>
                   <button
-                    onClick={() => {
-                      // Redirect to Cal.com Outlook Calendar connection
-                      const calcomUrl = `https://app.cal.com/apps/outlook-calendar?user=${currentManagedUserId}`;
-                      window.open(calcomUrl, '_blank');
+                    onClick={async () => {
+                      try {
+                        const oauthUrl = await getCalendarOAuthUrl('outlook', currentManagedUserId, currentAccessToken);
+                        window.location.href = oauthUrl;
+                      } catch (error) {
+                        console.error('Error getting Outlook OAuth URL:', error);
+                        alert('Failed to connect Outlook Calendar. Please try again.');
+                      }
                     }}
                     className="w-full py-3 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
                   >
@@ -493,7 +507,7 @@ export default function CalendarsPage() {
 
                 <div className="mt-4 p-3 bg-blue-50 rounded-lg">
                   <p className="text-sm text-blue-800">
-                    <strong>Note:</strong> Clicking these buttons will open Cal.com in a new tab where you can connect your calendars. After connecting, close the tab and you'll be able to use your calendars for scheduling.
+                    <strong>Note:</strong> Clicking these buttons will redirect you to Google or Microsoft to grant calendar permissions. After granting permission, you'll be redirected back and your calendar will be connected.
                   </p>
                 </div>
               </div>

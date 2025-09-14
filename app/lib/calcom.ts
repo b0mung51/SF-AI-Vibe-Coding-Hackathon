@@ -43,11 +43,25 @@ export async function createCalcomManagedUser(userEmail: string, userName: strin
       const existingUserId = existingUserIdMatch[1];
       console.log('Cal.com user already exists, using existing user ID:', existingUserId);
 
-      // For existing users, we need to generate access tokens
-      // This is a simplified approach - in production you might need to implement proper token management
+      // Force refresh tokens for existing user
+      const refreshResponse = await fetch(`https://api.cal.com/v2/oauth-clients/${CLIENT_ID}/users/${existingUserId}/force-refresh`, {
+        method: 'POST',
+        headers: {
+          'x-cal-secret-key': JWT_TOKEN,
+        },
+      });
+
+      if (!refreshResponse.ok) {
+        console.error('Failed to force refresh tokens:', await refreshResponse.text());
+        throw new Error(`Failed to refresh tokens for existing user: ${refreshResponse.status}`);
+      }
+
+      const refreshData = await refreshResponse.json();
+      console.log('Tokens refreshed for existing user:', refreshData);
+
       return {
-        accessToken: 'existing_user_token', // Placeholder - you'll need proper token generation
-        refreshToken: 'existing_user_refresh', // Placeholder - you'll need proper token generation
+        accessToken: refreshData.accessToken || refreshData.data?.accessToken,
+        refreshToken: refreshData.refreshToken || refreshData.data?.refreshToken,
         managedUserId: existingUserId,
       };
     }
@@ -146,24 +160,26 @@ export async function createCalcomBooking(
   return await response.json();
 }
 
-export async function getCalendarOAuthUrl(provider: 'google' | 'outlook', managedUserId: string): Promise<string> {
-  const JWT_TOKEN = process.env.NEXT_PUBLIC_CALCOM_JWT_TOKEN;
-
-  if (!JWT_TOKEN) {
-    throw new Error('Cal.com JWT token not configured');
+export async function getCalendarOAuthUrl(provider: 'google' | 'outlook', managedUserId: string, accessToken: string): Promise<string> {
+  if (!accessToken) {
+    throw new Error('Access token not provided');
   }
 
-  const response = await fetch('https://api.cal.com/v2/calendars/get-oauth-connect-url', {
-    method: 'POST',
+  // Map our provider names to Cal.com's expected values
+  const calendarProvider = provider === 'outlook' ? 'office365' : 'google';
+
+  // Build the URL with required parameters
+  const redirectUrl = `http://localhost:3000/api/cal/callback/${provider}`;
+  const url = new URL(`https://api.cal.com/v2/calendars/${calendarProvider}/connect`);
+  url.searchParams.append('isDryRun', 'false');
+  url.searchParams.append('redir', redirectUrl);
+
+  const response = await fetch(url.toString(), {
+    method: 'GET',
     headers: {
+      'Authorization': `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
-      'x-cal-secret-key': JWT_TOKEN,
     },
-    body: JSON.stringify({
-      provider,
-      userId: managedUserId,
-      redirectUrl: `${window.location.origin}/api/cal/callback/${provider}`,
-    }),
   });
 
   if (!response.ok) {
@@ -173,5 +189,31 @@ export async function getCalendarOAuthUrl(provider: 'google' | 'outlook', manage
   }
 
   const data = await response.json();
-  return data.url || data.authUrl || data.data?.url;
+  console.log('Cal.com OAuth URL response:', JSON.stringify(data, null, 2));
+
+  // Check if response indicates success
+  if (data.status === 'success' && data.data) {
+    // The actual content is nested in data.data
+    const innerData = data.data;
+    console.log('Inner data structure:', JSON.stringify(innerData, null, 2));
+
+    // Try different possible field names for the OAuth URL
+    const oauthUrl = innerData.url || innerData.authUrl || innerData.redirectUrl ||
+                     innerData.connectUrl || innerData.oauth_url || innerData.authorization_url;
+
+    if (oauthUrl) {
+      console.log('Found OAuth URL:', oauthUrl);
+      return oauthUrl;
+    }
+  }
+
+  // Fallback to checking direct properties
+  const oauthUrl = data.url || data.authUrl || data.redirectUrl;
+
+  if (!oauthUrl) {
+    console.error('No OAuth URL found in response. Full response:', JSON.stringify(data, null, 2));
+    throw new Error('OAuth URL not found in Cal.com response');
+  }
+
+  return oauthUrl;
 }
