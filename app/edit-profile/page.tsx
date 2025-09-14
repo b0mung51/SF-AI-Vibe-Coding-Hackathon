@@ -33,6 +33,53 @@ export default function CalendarsPage() {
     }
   }, [user, loading, router]);
 
+  // Check for OAuth callback and update connected providers
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const success = urlParams.get('success');
+    const provider = sessionStorage.getItem('connecting-provider');
+    const calendarId = sessionStorage.getItem('connecting-calendar-id');
+
+    if (success === 'true' && provider && calendarId) {
+      // Update the calendar to include the connected provider
+      setCalendars(prev => prev.map(cal => {
+        if (cal.id === calendarId) {
+          const connectedProviders = cal.connectedProviders || [];
+          if (!connectedProviders.includes(provider as any)) {
+            return {
+              ...cal,
+              connectedProviders: [...connectedProviders, provider as any]
+            };
+          }
+        }
+        return cal;
+      }));
+
+      // Update the database
+      if (calendarId && provider) {
+        const calendar = calendars.find(c => c.id === calendarId);
+        if (calendar) {
+          const updatedProviders = calendar.connectedProviders || [];
+          if (!updatedProviders.includes(provider as any)) {
+            updateCalendar(calendarId, {
+              connectedProviders: [...updatedProviders, provider as any]
+            }).catch(console.error);
+          }
+        }
+      }
+
+      // Clear session storage
+      sessionStorage.removeItem('connecting-provider');
+      sessionStorage.removeItem('connecting-calendar-id');
+
+      // Clear URL params
+      window.history.replaceState({}, document.title, window.location.pathname);
+
+      // Close the modal
+      setShowCalendarConnect(false);
+    }
+  }, [calendars]);
+
   const loadCalendars = async () => {
     if (!user) return;
     try {
@@ -248,14 +295,58 @@ export default function CalendarsPage() {
                   </div>
                   <div className="text-left">
                     <p className="font-medium text-gray-900">{calendar.email}</p>
-                    <a
-                      href={`https://app.cal.com/event-types`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
-                    >
-                      See Cal →
-                    </a>
+                    {calendar.connectedProviders && calendar.connectedProviders.length > 0 ? (
+                      <div className="flex gap-2 mt-1">
+                        {calendar.connectedProviders.map((provider) => {
+                          const getProviderLink = (provider: string) => {
+                            switch (provider) {
+                              case 'google':
+                                return 'https://calendar.google.com';
+                              case 'outlook':
+                                return 'https://outlook.live.com/calendar';
+                              case 'icloud':
+                                return 'https://www.icloud.com/calendar';
+                              default:
+                                return 'https://app.cal.com/event-types';
+                            }
+                          };
+
+                          const getProviderName = (provider: string) => {
+                            switch (provider) {
+                              case 'google':
+                                return 'Google';
+                              case 'outlook':
+                                return 'Outlook';
+                              case 'icloud':
+                                return 'iCloud';
+                              default:
+                                return 'Calendar';
+                            }
+                          };
+
+                          return (
+                            <a
+                              key={provider}
+                              href={getProviderLink(provider)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                            >
+                              {getProviderName(provider)} →
+                            </a>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <a
+                        href="https://app.cal.com/event-types"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                      >
+                        Cal.com →
+                      </a>
+                    )}
                   </div>
                 </div>
                 <svg
@@ -453,6 +544,9 @@ export default function CalendarsPage() {
                       }
                       try {
                         const oauthUrl = await getCalendarOAuthUrl('google', currentManagedUserId, currentAccessToken);
+                        // Store which provider we're connecting for callback handling
+                        sessionStorage.setItem('connecting-provider', 'google');
+                        sessionStorage.setItem('connecting-calendar-id', expandedCalendar || '');
                         window.location.href = oauthUrl;
                       } catch (error) {
                         console.error('Error getting Google OAuth URL:', error);
@@ -481,6 +575,9 @@ export default function CalendarsPage() {
                       }
                       try {
                         const oauthUrl = await getCalendarOAuthUrl('outlook', currentManagedUserId, currentAccessToken);
+                        // Store which provider we're connecting for callback handling
+                        sessionStorage.setItem('connecting-provider', 'outlook');
+                        sessionStorage.setItem('connecting-calendar-id', expandedCalendar || '');
                         window.location.href = oauthUrl;
                       } catch (error) {
                         console.error('Error getting Outlook OAuth URL:', error);

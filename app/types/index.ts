@@ -31,6 +31,7 @@ export interface Calendar {
   isDefault: boolean;
   schedulableHours: SchedulableHours;
   calcomIntegrationId?: string;
+  connectedProviders?: ('google' | 'outlook' | 'icloud')[];
   createdAt: Date;
   updatedAt: Date;
 }
